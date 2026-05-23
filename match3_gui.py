@@ -98,80 +98,80 @@ class Match3GUI:
 
     #dialog box
     DIALOG_LINES = {
-        #fate — {"header", "quote", "speaker", "effect"}
-        "fate_philosopher": {"header": "[FATE] Fate hath led thee down this path.", "quote": "When we give someone our time, we actually give a portion of our life that we will never take back.", "speaker": "Alexander the Great",  "effect": "Time shall stand still for two turns hence."},
-        "fate_seer":        {"header": "Fate hath led thee down this path.", "quote": "Will the future bring your wisdom to me?",                                                           "speaker": "Michel de Nostredame", "effect": "All Chance blocks upon the board are gathered unto thee."},
-        "fate_sage":        {"header": "Fate hath led thee down this path.", "quote": "As you cannot do what you want, want what you can do.",                                              "speaker": "Leonardo da Vinci",    "effect": "Thy craft yields double reward for two turns."},
-        "fate_thief":       {"header": "Fate hath led thee down this path.", "quote": "No one should be discouraged who can make constant progress, even though it be slow.",               "speaker": "Plato",                "effect": "Five tokens of thy craft are taken from thee."},
-        "fate_brute":       {"header": "Fate hath led thee down this path.", "quote": "Ich liebe den Verrat, aber ich hasse den Verraeter.",                                               "speaker": "Gaius Julius Caesar",  "effect": "Five tokens of fortune are struck from thy count."},
-        "fate_prisoner":    {"header": "Fate hath led thee down this path.", "quote": "Time crumbles things; everything grows old and is forgotten through the lapse of Time.",             "speaker": "Aristoteles",          "effect": "Time flows twofold in thy favour for two turns."},
+        #fate — {"quote", "speaker", "effect"}
+        "fate_philosopher": {"quote": "When we give someone our time, we actually give a portion of our life that we will never take back.", "speaker": "Alexander the Great",  "effect": "Time shall stand still for two turns hence."},
+        "fate_seer":        {"quote": "Will the future bring your wisdom to me?",                                                           "speaker": "Michel de Nostredame", "effect": "All Chance blocks upon the board are gathered unto thee."},
+        "fate_sage":        {"quote": "As you cannot do what you want, want what you can do.",                                              "speaker": "Leonardo da Vinci",    "effect": "Thy craft yields double reward for two turns."},
+        "fate_thief":       {"quote": "No one should be discouraged who can make constant progress, even though it be slow.",               "speaker": "Plato",                "effect": "Five tokens of thy craft are taken from thee."},
+        "fate_brute":       {"quote": "Ich liebe den Verrat, aber ich hasse den Verraeter.",                                               "speaker": "Gaius Julius Caesar",  "effect": "Five tokens of fortune are struck from thy count."},
+        "fate_prisoner":    {"quote": "Time crumbles things; everything grows old and is forgotten through the lapse of Time.",             "speaker": "Aristoteles",          "effect": "Time flows twofold in thy favour for two turns."},
 
-        #0=handicraft, 1=military, 2=forge — {"header", "lines"}
+        #0=handicraft, 1=military, 2=forge — {"lines"}
         "hobby_state_1": {
-            0: {"header": "[HOBBY] Passtime unlocked", "lines": ["A fondness for cloth and thread hath taken root within thy heart."]},
-            1: {"header": "Passtime unlocked", "lines": ["A love of mock battle and war-play hath stirred within thy breast."]},
-            2: {"header": "Passtime unlocked", "lines": ["A delight in gathering stones of the earth hath blossomed within thee."]},
+            0: {"lines": ["A fondness for cloth and thread hath taken root within thy heart."]},
+            1: {"lines": ["A love of mock battle and war-play hath stirred within thy breast."]},
+            2: {"lines": ["A delight in gathering stones of the earth hath blossomed within thee."]},
         },
         "hobby_state_2": {
-            0: {"header": "[HOBBY] Passion unlocked", "lines": ["Thou hast resolved to become a craftsman of great skill and renown."]},
-            1: {"header": "Passion unlocked", "lines": ["Thou hast sworn to walk the path of a valiant soldier."]},
-            2: {"header": "Passion unlocked", "lines": ["Thou hast set thy will upon becoming a master of the forge."]},
+            0: {"lines": ["Thou hast resolved to become a craftsman of great skill and renown."]},
+            1: {"lines": ["Thou hast sworn to walk the path of a valiant soldier."]},
+            2: {"lines": ["Thou hast set thy will upon becoming a master of the forge."]},
         },
         "hobby_state_3": {
-            0: {"header": "[HOBBY] Never give up", "lines": ["Alas. Thy hands are fit only for the work of a nameless apprentice."]},
-            1: {"header": "Never give up", "lines": ["So it must be. Thou shalt serve as a footman rather than a warrior."]},
-            2: {"header": "Never give up", "lines": ["The forge's door is shut to thee. Thou art naught but a bellows-hand."]},
+            0: {"lines": ["Alas. Thy hands are fit only for the work of a nameless apprentice."]},
+            1: {"lines": ["So it must be. Thou shalt serve as a footman rather than a warrior."]},
+            2: {"lines": ["The forge's door is shut to thee. Thou art naught but a bellows-hand."]},
         },
 
-        #0=love, 1=religious, 2=mastermind — {"header", "lines"}
+        #0=love, 1=religious, 2=mastermind — {"lines"}
         "chance_state_1": {
-            0: {"header": "[CHANCE] A new door hath opened before thine eyes...", "lines": ["Thou hast met the love of thy life — the daughter of a wealthy merchant in the land. Whither shall this affair lead thee?"]},
-            1: {"header": "A new door hath opened before thine eyes...", "lines": ["Knock, knock. A stranger appeareth at thy door, calling himself a cleric from the East, seeking thy aid in gathering new followers to his cause."]},
-            2: {"header": "A new door hath opened before thine eyes...", "lines": ["By fortune's hand, thou didst save the King from an assassin's blade, and wast duly appointed as his Royal Chamberlain."]},
+            0: {"lines": ["Thou hast met the love of thy life — the daughter of a wealthy merchant in the land. Whither shall this affair lead thee?"]},
+            1: {"lines": ["Knock, knock. A stranger appeareth at thy door, calling himself a cleric from the East, seeking thy aid in gathering new followers to his cause."]},
+            2: {"lines": ["By fortune's hand, thou didst save the King from an assassin's blade, and wast duly appointed as his Royal Chamberlain."]},
         },
 
-        #age — {"header", "lines"}
-        "stage_1": {"header": "[AGE] Time doth fly...", "lines": ["Thou hast grown into a lively and restless child."]},
-        "stage_2": {"header": "[AGE] Time doth fly...", "lines": ["Wonder stirs within thee — thou art now a curious and keen-eyed youth."]},
-        "stage_3": {"header": "[AGE] Time doth fly...", "lines": ["A new chapter of life openeth before thee, full of ambition and hope."]},
-        "stage_4": {"header": "[AGE] Time doth fly...", "lines": ["Thou enterest the years of middle age. The final road doth beckon."]},
+        #age — {"lines"}
+        "stage_1": {"lines": ["Thou hast grown into a lively and restless child."]},
+        "stage_2": {"lines": ["Wonder stirs within thee — thou art now a curious and keen-eyed youth."]},
+        "stage_3": {"lines": ["A new chapter of life openeth before thee, full of ambition and hope."]},
+        "stage_4": {"lines": ["Thou enterest the years of middle age. The final road doth beckon."]},
 
         # ── ENDINGS — integer keys khớp với hàm endings() ─────────────── #
 
         # call_type=0: DIALOG_LINES[0][hobby_state][hobby_type]
         0: {
             2: {  # hobby_state=2 (thắng lần đầu)
-                0: {"header": "[ENDING] A master is born.", "lines": ["Thy nimble fingers hath shaped wonders beyond measure. The finest craftsman in all the land — that is what thou hast become."]},
-                1: {"header": "[ENDING] Steel and glory.", "lines": ["Steel in thy heart, fire in thy eyes — thou hast risen to become a warrior of great renown."]},
-                2: {"header": "[ENDING] The forge singeth thy name.", "lines": ["Master of iron and flame — none can match the craft of thy hands. The forge doth bear thy legend."]},
+                0: {"header": "A master is born.", "lines": ["Thy nimble fingers hath shaped wonders beyond measure. The finest craftsman in all the land — that is what thou hast become."]},
+                1: {"header": "Steel and glory.", "lines": ["Steel in thy heart, fire in thy eyes — thou hast risen to become a warrior of great renown."]},
+                2: {"header": "The forge singeth thy name.", "lines": ["Master of iron and flame — none can match the craft of thy hands. The forge doth bear thy legend."]},
             },
             3: {  # hobby_state=3 (thắng sau khi thất bại)
-                0: {"header": "[ENDING] Hard-won glory.", "lines": ["Though the road was not without stumble, thy hands hath found their calling. A craftsman of respectable skill and honest toil."]},
-                1: {"header": "[ENDING] A soldier forged in hardship.", "lines": ["Thou hast earned thy place among the soldiers, though not without struggle. A loyal fighter, true to the last."]},
-                2: {"header": "[ENDING] Soot and pride.", "lines": ["Through sweat and soot, thou hast forged not only metal, but a life worthy of pride."]},
+                0: {"header": "Hard-won glory.", "lines": ["Though the road was not without stumble, thy hands hath found their calling. A craftsman of respectable skill and honest toil."]},
+                1: {"header": "A soldier forged in hardship.", "lines": ["Thou hast earned thy place among the soldiers, though not without struggle. A loyal fighter, true to the last."]},
+                2: {"header": "Soot and pride.", "lines": ["Through sweat and soot, thou hast forged not only metal, but a life worthy of pride."]},
             },
         },
 
         # call_type=1: DIALOG_LINES[1][random_wheel_result][chance_type]
         1: {
             "copper": {
-                0: {"header": "[ENDING] A love torn apart.", "lines": ["Her family never approved. The door was shut in your face, and the heartbreak never healed. You spent the rest of your days drinking and gambling away what little was left."]},
-                1: {"header": "[ENDING] The offering.", "lines": ["The cleric smiled as the villagers gathered around you. Too late, you understood — you were not a helper. You were the sacrifice."]},
-                2: {"header": "[ENDING] Executed at dawn.", "lines": ["You joined the uprising, believing in the cause. When it failed, the King showed no mercy. You were the first name on the list."]},
+                0: {"header": "A love torn apart.", "lines": ["Her family never approved. The door was shut in your face, and the heartbreak never healed. You spent the rest of your days drinking and gambling away what little was left."]},
+                1: {"header": "The offering.", "lines": ["The cleric smiled as the villagers gathered around you. Too late, you understood — you were not a helper. You were the sacrifice."]},
+                2: {"header": "Executed at dawn.", "lines": ["You joined the uprising, believing in the cause. When it failed, the King showed no mercy. You were the first name on the list."]},
             },
             "gold": {
-                0: {"header": "[ENDING] A life well lived.", "lines": ["You married her and never looked back. Years passed in quiet happiness — a warm home, a full heart, and someone always beside you until the very end."]},
-                1: {"header": "[ENDING] Leader of the flock.", "lines": ["The congregation grew, and in time you became their leader. A small village, a humble life — but every soul there called you their shepherd."]},
-                2: {"header": "[ENDING] The King's most trusted.", "lines": ["Of all the King's men, none stood closer than you. You whispered in his ear, shaped his decisions, and lived in comfort and honor to a ripe old age."]},
+                0: {"header": "A life well lived.", "lines": ["You married her and never looked back. Years passed in quiet happiness — a warm home, a full heart, and someone always beside you until the very end."]},
+                1: {"header": "Leader of the flock.", "lines": ["The congregation grew, and in time you became their leader. A small village, a humble life — but every soul there called you their shepherd."]},
+                2: {"header": "The King's most trusted.", "lines": ["Of all the King's men, none stood closer than you. You whispered in his ear, shaped his decisions, and lived in comfort and honor to a ripe old age."]},
             },
         },
 
         # call_type=2: DIALOG_LINES[2][hobby_type or chance_type or 4]
         2: {
-            0: {"header": "[ENDING] A life chasing a dream.", "lines": ["You never stopped trying. Not even when the money ran out. Some days you ate, some days you didn't — but the dream was always there, just out of reach."]},
-            1: {"header": "[ENDING] Always one step behind.", "lines": ["You kept reaching back for a life that had already moved on. No matter how far you ran, the past was faster. You never truly lived in the present."]},
-            2: {"header": "[ENDING] A flame that never caught.", "lines": ["You chased power and purpose all your life, never settling, never arriving. The fire inside you burned bright — but it burned alone."]},
-            4: {"header": "[ENDING] Lost in the middle of it all.", "lines": ["No calling. No stroke of luck. Just one ordinary day after another. You lived, and that was all — a quiet life that left no mark and asked for none."]},
+            0: {"header": "A life chasing a dream.", "lines": ["You never stopped trying. Not even when the money ran out. Some days you ate, some days you didn't — but the dream was always there, just out of reach."]},
+            1: {"header": "Always one step behind.", "lines": ["You kept reaching back for a life that had already moved on. No matter how far you ran, the past was faster. You never truly lived in the present."]},
+            2: {"header": "A flame that never caught.", "lines": ["You chased power and purpose all your life, never settling, never arriving. The fire inside you burned bright — but it burned alone."]},
+            4: {"header": "Lost in the middle of it all.", "lines": ["No calling. No stroke of luck. Just one ordinary day after another. You lived, and that was all — a quiet life that left no mark and asked for none."]},
         },
     }
     def __init__(self) -> None:
@@ -590,7 +590,7 @@ class Match3GUI:
             lines.append(current)
         return lines if lines else [""]
 
-    def draw_dialog(self, content) -> None:
+    def draw_dialog(self, content, icons=None) -> None:
         gw=self.game_surf.get_width()
         gh=self.game_surf.get_height()
         box_diag=math.sqrt(gw**2+gh**2)*0.52
@@ -623,12 +623,17 @@ class Match3GUI:
         fd=fds    # speaker — small
         lh=fds.get_height()+5
         lh_large=fdl.get_height()+8
-        sep=max(4, lh//3)
+        sep=3
 
         DARK_RED=(160, 30, 30)
         COL_QUOTE=(202, 117, 66)
         COL_SPEAKER=(187, 133, 61)
         COL_EFFECT=(138, 69, 51)
+
+        icons=[i for i in (icons or []) if i is not None]
+        icon_size=int(lh_large*0.6) if icons else 0
+        icon_gap=3 if icons else 0
+        icon_row_h=icon_size+sep if icons else 0
 
         def blit_line(font, text, color, line_h=None, x_center=True, x_right=None):
             nonlocal ty
@@ -639,19 +644,32 @@ class Match3GUI:
                 self.game_surf.blit(lbl, (cx-lbl.get_width()//2, ty))
             ty+=(line_h or lh)
 
+        def blit_icons():
+            nonlocal ty
+            if not icons: return
+            total_icon_w=len(icons)*icon_size+(len(icons)-1)*icon_gap
+            ix=cx-total_icon_w//2
+            for ic in icons:
+                si=pygame.transform.smoothscale(ic,(icon_size,icon_size))
+                self.game_surf.blit(si,(ix,ty))
+                ix+=icon_size+icon_gap
+            ty+=icon_row_h
+
         header=content.get("header") if isinstance(content, dict) else None
 
         if isinstance(content, dict) and "quote" in content:
-            # Fate: header + quote (nhỏ) + speaker + effect
+            # Fate: icon + header + quote + speaker + effect
             quote_lines=self._wrap_text(content["quote"], fdi, max_text_w)
             speaker_lines=self._wrap_text(content["speaker"], fd, max_text_w)
             effect_lines=self._wrap_text(content["effect"], fdl, max_text_w)
             header_lines=self._wrap_text(header, fdl, max_text_w) if header else []
-            total_h=(len(header_lines)*lh_large+sep
+            total_h=(icon_row_h
+                    +len(header_lines)*lh_large+sep
                     +len(quote_lines)*lh+sep
                     +len(speaker_lines)*lh+sep
                     +len(effect_lines)*lh_large)
             ty=max(content_rect.top, cy-total_h//2)
+            blit_icons()
             for line in header_lines:
                 blit_line(fdl, line, DARK_RED, line_h=lh_large)
             ty+=sep
@@ -664,14 +682,15 @@ class Match3GUI:
             for line in effect_lines:
                 blit_line(fdl, line, COL_EFFECT, line_h=lh_large)
         else:
-            # hobby / chance / stage: header + lines
+            # hobby / chance / stage / ending: icon + header + lines
             lines=content.get("lines", content) if isinstance(content, dict) else content
             header_lines=self._wrap_text(header, fdl, max_text_w) if header else []
             all_lines=[]
             for line in lines:
                 all_lines.extend(self._wrap_text(line, fdl, max_text_w))
-            total_h=len(header_lines)*lh_large+sep+len(all_lines)*lh_large
+            total_h=icon_row_h+len(header_lines)*lh_large+sep+len(all_lines)*lh_large
             ty=max(content_rect.top, cy-total_h//2)
+            blit_icons()
             for line in header_lines:
                 blit_line(fdl, line, DARK_RED, line_h=lh_large)
             ty+=sep
@@ -680,11 +699,11 @@ class Match3GUI:
 
         self.game_surf.set_clip(None)  # bỏ clip sau khi vẽ xong
 
-    def show_dialog_and_wait(self, content) -> None:
+    def show_dialog_and_wait(self, content, icons=None) -> None:
         """Hiển thị hộp thoại, pause mọi thứ, chờ click chuột để đóng."""
         self.draw_board()
         self.draw_sidebar()
-        self.draw_dialog(content)
+        self.draw_dialog(content, icons)
         pygame.display.flip()
         waiting=True
         while waiting:
@@ -699,7 +718,7 @@ class Match3GUI:
                     self.resize_surfaces()
                     self.draw_board()
                     self.draw_sidebar()
-                    self.draw_dialog(content)
+                    self.draw_dialog(content, icons)
                     pygame.display.flip()
         # Xóa dialog: vẽ lại screen không có dialog
         self.screen_surf.fill(self.background_color["screen"])
@@ -1188,20 +1207,42 @@ class Match3GUI:
     ##################################################
     # Process events functions
     ##################################################
+    def _hobby_dialog_icon(self):
+        if self.hobby_type is None:
+            return self.hobby_icon_s0
+        # boost icon index matches current state (capped at 2; state 3 uses index 2)
+        idx = min(max(self.hobby_state, 0), 2)
+        for i in (idx, 1, 0):
+            ic = self.hobby_boost_icons[self.hobby_type][i]
+            if ic is not None:
+                return ic
+        return self.hobby_icon_s0
+
+    def _chance_dialog_icon(self):
+        if self.chance_type is None:
+            return self.chance_icon_s0
+        return self.chance_boost_icon or self.chance_icons[self.chance_type] or self.chance_icon_s0
+
     def endings(self, call_type: int) -> None:
         if call_type==0:
-            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_state][self.hobby_type])
+            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_state][self.hobby_type],
+                                      icons=[self._hobby_dialog_icon()])
         elif call_type==1:
-            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.random_wheel_result][self.chance_type])
+            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.random_wheel_result][self.chance_type],
+                                      icons=[self._chance_dialog_icon()])
         else:
             if self.hobby_count>=50:
-                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_type])
+                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_type],
+                                          icons=[self._hobby_dialog_icon()])
             elif self.chance_count>=40:
-                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.chance_type])
+                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.chance_type],
+                                          icons=[self._chance_dialog_icon()])
             else:
-                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][4])
+                lost_icons=[i for i in [self._chance_dialog_icon(), self._hobby_dialog_icon()] if i]
+                self.show_dialog_and_wait(self.DIALOG_LINES[call_type][4],
+                                          icons=lost_icons or None)
         self.game_ended=True
-        return 
+        return
 
     def running_process_events(self, events, **kwargs) -> bool:
         update_display = False
@@ -1412,7 +1453,7 @@ class Match3GUI:
         if self.hobby_type == 0:#handicraft
             result = minigame.Snake(self.board_surf, self.clock, difficulty).run()
         elif self.hobby_type == 1:#military
-            result = minigame.TopDownShooter(self.board_surf, self.clock, difficulty).run()
+            result = minigame.Fighter(self.board_surf, self.clock, difficulty).run()
         else:#forge
             result = minigame.Minesweeper(self.board_surf, self.clock, difficulty).run()
 
@@ -1423,7 +1464,8 @@ class Match3GUI:
             self.hobby_state=3   #giảm độ khó
             self.hobby_count=40  #reset về đầu state 2 để tích lại
             if "hobby_state_3" in self.DIALOG_LINES and self.hobby_type is not None:
-                self.show_dialog_and_wait(self.DIALOG_LINES["hobby_state_3"][self.hobby_type])
+                self.show_dialog_and_wait(self.DIALOG_LINES["hobby_state_3"][self.hobby_type],
+                                          icons=[self._hobby_dialog_icon()])
 
     def check_stat_thresholds(self, check_time: bool = True) -> None:
         if check_time and self.time_count>=12:
@@ -1434,7 +1476,8 @@ class Match3GUI:
             self.time_count=0
             key=f"stage_{self.life_stage}"
             if key in self.DIALOG_LINES:
-                self.show_dialog_and_wait(self.DIALOG_LINES[key])
+                self.show_dialog_and_wait(self.DIALOG_LINES[key],
+                                          icons=[self.time_icon[0]] if self.time_icon[0] else None)
 
         new_hobby=min(self.hobby_count//20, 2)
         if new_hobby>self.hobby_state and self.hobby_state!=3:
@@ -1443,7 +1486,8 @@ class Match3GUI:
             self.hobby_state=new_hobby
             key=f"hobby_state_{self.hobby_state}"
             if key in self.DIALOG_LINES and self.hobby_type is not None:
-                self.show_dialog_and_wait(self.DIALOG_LINES[key][self.hobby_type])
+                self.show_dialog_and_wait(self.DIALOG_LINES[key][self.hobby_type],
+                                          icons=[self._hobby_dialog_icon()])
 
         if self.hobby_state>=2 and self.hobby_count>=60:
             self.hobby_count=60
@@ -1455,16 +1499,14 @@ class Match3GUI:
                 self.chance_type=random.randint(0, 2)
             self.chance_state=new_chance
             if self.chance_state==1 and self.chance_type is not None:
-                self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type])
+                self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type],
+                                          icons=[self._chance_dialog_icon()])
 
-        # Khi chance_count >= 50: quay bánh xe RandomWheel
+        # Khi chance_count >= 50: xác định kết quả (gold 5%, copper 10%, blank 85%)
         if self.chance_count>=50 and self.random_wheel_result is None:
-            result=minigame.TheWheelOfTruth(
-                self.board_surf, self.clock,
-                wheel_path="media/images/ui/wheel.png",
-                arrow_path="media/images/ui/arrow.png",
-            ).run()
-            self.random_wheel_result=result if result!="blank" else None
+            roll = random.random()
+            result = "gold" if roll < 0.05 else "copper" if roll < 0.15 else "blank"
+            self.random_wheel_result = result if result != "blank" else None
             if self.random_wheel_result is not None:
                 self.endings(1)
 
@@ -1480,7 +1522,8 @@ class Match3GUI:
 
         dialog_key=f"fate_{event}"
         if dialog_key in self.DIALOG_LINES:
-            self.show_dialog_and_wait(self.DIALOG_LINES[dialog_key])
+            self.show_dialog_and_wait(self.DIALOG_LINES[dialog_key],
+                                      icons=[self.fate_icon] if self.fate_icon else None)
 
         fate_pt=[(sx, sy)]
         self.animate_clear(fate_pt)
