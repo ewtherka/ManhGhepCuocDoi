@@ -222,6 +222,7 @@ class Match3GUI:
         self.chance_icon_s0=None
         self.chance_icons=[None, None, None]#(love/religious/mastermind)
         self.chance_boost_icon=None
+        self.chance_boost_icons=[None, None, None]  # [type] = chance_{love/religious/mastermind}_boost.png
         self.chance_type=None#randumb
         self.time_icon=[None, None]
         self.fate_icon=None
@@ -362,9 +363,9 @@ class Match3GUI:
 
             pygame.display.flip()
 
-    def animate_shift_down(self, shifted_bp: list[tuple[int, int]], num_vertical_points: int) -> None:
+    def animate_shift_down(self, shifted_bp: list[tuple[int, int]], num_vertical_points: int, src_pts: list[tuple[int,int]] = None) -> None:
         board_points_dst = shifted_bp
-        board_points_src = [(x, y - 1) for (x, y) in board_points_dst]
+        board_points_src = src_pts if src_pts is not None else [(x, y - 1) for (x, y) in board_points_dst]
         win_points_dst = [list(self.board_pos_to_win_pos(*p)) for p in board_points_dst]
         win_points_src = [list(self.board_pos_to_win_pos(*p)) for p in board_points_src]
         color_indices = [self.board.board[y][x] for (x, y) in board_points_dst]
@@ -537,7 +538,10 @@ class Match3GUI:
                 # state=0 hoặc chưa có icon riêng → dùng generic [0][0]=hobby_boost.png
                 icon=self.hobby_boost_icons[0][0]
         elif color_index==B.BOOST_CHANCE:
-            icon=self.chance_boost_icon
+            if self.chance_type is not None:
+                icon=self.chance_boost_icons[self.chance_type] or self.chance_boost_icon
+            else:
+                icon=self.chance_boost_icon
         elif color_index==B.TIME:
             icon=self.time_icon[0]
         elif color_index==B.BOOST_TIME:
@@ -621,9 +625,9 @@ class Match3GUI:
         fdl=self.font_dialog_large or self.font_dialog or self.font
         fdi=fds   # quote — small italic
         fd=fds    # speaker — small
-        lh=fds.get_height()+5
-        lh_large=fdl.get_height()+8
-        sep=3
+        lh=fds.get_height()+2
+        lh_large=fdl.get_height()+4
+        sep=2
 
         DARK_RED=(160, 30, 30)
         COL_QUOTE=(202, 117, 66)
@@ -1184,9 +1188,9 @@ class Match3GUI:
         self.font.set_bold(True)
         self.font_italic=pygame.font.SysFont("monospace", int(self.font_size))
         self.font_italic.set_italic(True)
-        dialog_size=max(14, int(self.font_size*0.65))
-        dialog_size_large=max(18, int(self.font_size*0.85))
-        dialog_size_small=max(11, int(self.font_size*0.45))
+        dialog_size=max(12, int(self.font_size*0.58))
+        dialog_size_large=max(16, int(self.font_size*0.76))
+        dialog_size_small=max(10, int(self.font_size*0.40))
         _font_path="media/font/RobotikaPixelGreek-nAWJR.otf"
         if os.path.isfile(_font_path):
             self.font_dialog=pygame.font.Font(_font_path, dialog_size)
@@ -1221,7 +1225,7 @@ class Match3GUI:
     def _chance_dialog_icon(self):
         if self.chance_type is None:
             return self.chance_icon_s0
-        return self.chance_boost_icon or self.chance_icons[self.chance_type] or self.chance_icon_s0
+        return self.chance_boost_icons[self.chance_type] or self.chance_icons[self.chance_type] or self.chance_boost_icon or self.chance_icon_s0
 
     def endings(self, call_type: int) -> None:
         if call_type==0:
@@ -1427,6 +1431,10 @@ class Match3GUI:
         boost_chance_path="media/images/block/chance_boost.png"
         if os.path.isfile(boost_chance_path):
             self.chance_boost_icon=pygame.image.load(boost_chance_path).convert_alpha()
+        for t, tname in enumerate(chance_types):
+            path=f"media/images/block/chance_{tname}_boost.png"
+            if os.path.isfile(path):
+                self.chance_boost_icons[t]=pygame.image.load(path).convert_alpha()
 
         for i, path in enumerate(["media/images/block/time_0.png", "media/images/block/time_boost.png"]):
             if os.path.isfile(path):
@@ -1637,18 +1645,39 @@ class Match3GUI:
                 sx, sy = pos
                 if not self.board.out_of_bounds(sx, sy) and self.board.board[sy][sx] == self.board.empty:
                     self.board.board[sy][sx] = btype
-            all_shifted = []
+            # Snapshot vị trí từng cột TRƯỚC khi shift (sau clear+spawn)
+            pre_shift_cols = {}
+            for y in range(self.board.rows):
+                for x in range(self.board.cols):
+                    if self.board.board[y][x] != self.board.empty:
+                        pre_shift_cols.setdefault(x, []).append(y)
             while True:
                 shifted = self.board.shift_down()
                 real = [(x,y) for (x,y) in shifted if self.board.board[y][x] != self.board.empty]
                 if not real:
                     break
-                all_shifted += shifted
-            all_shifted += self.board.populate(rows=(0, self.board.rows),
-                                               no_valid_play_check=False,
-                                               no_match3_group_check=True)
-            if all_shifted:
-                self.animate_shift_down(all_shifted, self.get_num_vertical_points(points))
+            # Tính đúng (src, dst) cho từng block đã di chuyển theo từng cột
+            anim_dst, anim_src = [], []
+            for x, pre_rows in pre_shift_cols.items():
+                post_rows = [y for y in range(self.board.rows) if self.board.board[y][x] != self.board.empty]
+                for i in range(len(pre_rows)):
+                    if pre_rows[i] != post_rows[i]:
+                        anim_src.append((x, pre_rows[i]))
+                        anim_dst.append((x, post_rows[i]))
+            # Đếm ô trống mỗi cột trước populate — dùng để tính điểm xuất phát
+            # sao cho tất cả block trong cùng cột đi đúng 1 quãng = num_empties,
+            # không cắt nhau trong animation.
+            num_empties_col = {
+                x: sum(1 for y in range(self.board.rows) if self.board.board[y][x] == self.board.empty)
+                for x in range(self.board.cols)
+            }
+            populated = self.board.populate(rows=(0, self.board.rows),
+                                            no_valid_play_check=False,
+                                            no_match3_group_check=True)
+            anim_dst += populated
+            anim_src += [(x, y - num_empties_col.get(x, 1)) for (x, y) in populated]
+            if anim_dst:
+                self.animate_shift_down(anim_dst, self.get_num_vertical_points(points), src_pts=anim_src)
             self.play_sound("drop")
             # Tăng time icon từng nấc sau shift down
             if time_gain > 0 and time_pts:
@@ -1721,9 +1750,9 @@ class Match3GUI:
         self.font.set_bold(True)
         self.font_italic=pygame.font.SysFont("monospace", int(self.font_size))
         self.font_italic.set_italic(True)
-        dialog_size=max(14, int(self.font_size*0.65))
-        dialog_size_large=max(18, int(self.font_size*0.85))
-        dialog_size_small=max(11, int(self.font_size*0.45))
+        dialog_size=max(12, int(self.font_size*0.58))
+        dialog_size_large=max(16, int(self.font_size*0.76))
+        dialog_size_small=max(10, int(self.font_size*0.40))
         _font_path="media/font/SVN-Coder's Crux.ttf"
         if os.path.isfile(_font_path):
             self.font_dialog=pygame.font.Font(_font_path, dialog_size)
