@@ -1,4 +1,4 @@
-﻿import json
+import json
 import jsonschema
 import math
 import os
@@ -1059,6 +1059,7 @@ class Match3GUI:
         self.philosopher_turns=0
         self.sage_turns=0
         self.prisoner_turns=0
+        self.turn_taken = False
         self.random_wheel_result=None
         self.game_state = GameState.RUNNING
         self.start_music()
@@ -1300,6 +1301,9 @@ class Match3GUI:
                     if not swap_valid:
                         self.animate_swap(tuple(board_pos_dst), self.board_pos_src)
                         self.board.swap(board_pos_dst, self.board_pos_src)
+                    else:
+                        self.turn_taken = True
+
                     self.mouse_state = MouseState.WAITING
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button != 1:
@@ -1459,7 +1463,7 @@ class Match3GUI:
     def minigame(self):
         difficulty = int(self.failedbefore)
         if self.hobby_type == 0:#handicraft
-            result = minigame.Snake(self.board_surf, self.clock, difficulty).run()
+            result = minigame.Tailor(self.board_surf, self.clock, difficulty).run()
         elif self.hobby_type == 1:#military
             result = minigame.Fighter(self.board_surf, self.clock, difficulty).run()
         else:#forge
@@ -1690,11 +1694,12 @@ class Match3GUI:
             groups = self.board.get_valid_groups()
             just_refilled=True   
 
-        #Đếm ngược sau mỗi lượt chơi (fate event)
-        if self.philosopher_turns>0: self.philosopher_turns-=1
-        if self.sage_turns>0: self.sage_turns-=1
-        if self.prisoner_turns>0: self.prisoner_turns-=1
-
+        if getattr(self, 'turn_taken', False):
+            if self.philosopher_turns > 0: self.philosopher_turns -= 1
+            if self.sage_turns > 0: self.sage_turns -= 1
+            if self.prisoner_turns > 0: self.prisoner_turns -= 1
+            self.turn_taken = False
+            
         #check coi còn chơi được k
         play = self.board.find_a_play()
         if len(play) == 0:
