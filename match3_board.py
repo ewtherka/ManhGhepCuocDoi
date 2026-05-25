@@ -4,17 +4,8 @@ import random
 
 class Match3Board:
     empty = ord(' ') - ord('a')
-    TIME = 0
-    HOBBY = 1
-    CHANCE = 2
-    BOOST_TIME = 3
-    BOOST_HOBBY = 4
-    BOOST_CHANCE = 5
-    FATE = 6
-    _BASE_OF  = {3: 0, 4: 1, 5: 2}   # BOOST_X → base type
-    _BOOST_OF = {0: 3, 1: 4, 2: 5}   # base type → BOOST_X
 
-    def __init__(self, cols: int = 5, rows: int = 5, num_values: int = 3) -> None:
+    def __init__(self, cols: int = 5, rows: int = 5, num_values: int = 4) -> None:
         if cols < 3 or rows < 3:
             raise ValueError("Minimum size is 3x3.")
         if cols > 27 or rows > 27:
@@ -45,9 +36,6 @@ class Match3Board:
             if row != self.rows - 1:
                 result += "\n"
         return result
-
-    def _match_key(self, val: int) -> int:
-        return self._BASE_OF.get(val, val)
 
     def clear(self, points: list[tuple[int, int]] = None) -> None:
         if points is None:
@@ -97,7 +85,7 @@ class Match3Board:
             neigh_y = row + offset_y
             if self.out_of_bounds(neigh_x, neigh_y):
                 continue
-            if self._match_key(self.board[row][col]) != self._match_key(self.board[neigh_y][neigh_x]):
+            if self.board[row][col] != self.board[neigh_y][neigh_x]:
                 continue
             if (neigh_x, neigh_y) in group:
                 continue
@@ -140,9 +128,7 @@ class Match3Board:
                 for (x, y) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     neigh_x = col + x
                     neigh_y = row + y
-                    if self.out_of_bounds(neigh_x, neigh_y):
-                        continue
-                    if self._match_key(self.board[row][col]) == self._match_key(self.board[neigh_y][neigh_x]):
+                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[row][col] == self.board[neigh_y][neigh_x]:
                         continue
                     swap_points = ((col, row), (neigh_x, neigh_y))
                     self.swap(*swap_points)
@@ -212,47 +198,15 @@ class Match3Board:
             score += group_bonus
         return score
 
-    def plan_special_spawns(self, groups: list) -> list[tuple[tuple[int, int], int]]:
-        """Return [(pos, block_type), ...] for BOOST/FATE spawns.
-
-        Spawn rule uses total cleared group size (handles L, T, + shapes):
-          >= 5 cells → FATE
-          == 4 cells → BOOST of the same type
-          <= 3 cells → nothing
-        Spawn position: bottom-most row of the group, right-most col in that row.
-        """
-        spawns = []
-        for group in groups:
-            n = len(group)
-            if n < 4:
-                continue
-            base = None
-            for (col, row) in group:
-                v = self.board[row][col]
-                if v != self.empty:
-                    base = self._match_key(v)
-                    break
-            if base is None:
-                continue
-            max_row = max(row for (_, row) in group)
-            max_col = max(col for (col, row) in group if row == max_row)
-            btype = self.FATE if n >= 5 else self._BOOST_OF.get(base, self.BOOST_TIME)
-            spawns.append(((max_col, max_row), btype))
-        return spawns
-
     def find_better_play(self) -> tuple[tuple[tuple[int, int], tuple[int, int]], list[list[tuple[int, int]]]]:
         best_play = tuple()
         best_score = 0
         for row in range(self.rows):
             for col in range(self.cols):
-                if self.board[row][col] == self.FATE:
-                    continue
                 for (x, y) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     neigh_x = col + x
                     neigh_y = row + y
-                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[neigh_y][neigh_x] == self.FATE:
-                        continue
-                    if self._match_key(self.board[row][col]) == self._match_key(self.board[neigh_y][neigh_x]):
+                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[row][col] == self.board[neigh_y][neigh_x]:
                         continue
                     swap_points = ((col, row), (neigh_x, neigh_y))
                     self.swap(*swap_points)
