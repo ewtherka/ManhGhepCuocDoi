@@ -142,15 +142,21 @@ class Match3Board:
                     neigh_y = row + y
                     if self.out_of_bounds(neigh_x, neigh_y):
                         continue
+                        
+                    if self.board[row][col] == self.FATE and self.board[neigh_y][neigh_x] == self.FATE:
+                        continue
+                        
                     if self._match_key(self.board[row][col]) == self._match_key(self.board[neigh_y][neigh_x]):
                         continue
+                        
                     swap_points = ((col, row), (neigh_x, neigh_y))
                     self.swap(*swap_points)
                     groups = list()
-                    for (x, y) in swap_points:
-                        group = self.filter_group(self.get_group(x, y))
-                        if len(group) > 0:
-                            groups.append(group)
+                    for (nx, ny) in swap_points:
+                        if self.board[ny][nx] not in (self.FATE, self.empty):
+                            group = self.filter_group(self.get_group(nx, ny))
+                            if len(group) > 0:
+                                groups.append(group)
                     self.swap(*swap_points)
                     if len(groups) > 0:
                         return (swap_points, groups)
@@ -169,7 +175,7 @@ class Match3Board:
         groups = list()
         for row in range(self.rows):
             for col in range(self.cols):
-                if self.board[row][col] == self.empty:
+                if self.board[row][col] in (self.empty, self.FATE):
                     continue
                 group = list(self.filter_group(self.get_group(col, row)))
                 if len(group) > 0:
@@ -189,12 +195,14 @@ class Match3Board:
     def is_swap_valid(self, point1: tuple[int, int], point2: tuple[int, int]) -> bool:
         if self.out_of_bounds(*point1) or self.out_of_bounds(*point2):
             return False
+        
         self.swap(point1, point2)
         groups = list()
         for (x, y) in (point1, point2):
-            group = self.filter_group(self.get_group(x, y))
-            if len(group) > 0:
-                groups.append(group)
+            if self.board[y][x] not in (self.FATE, self.empty):
+                group = self.filter_group(self.get_group(x, y))
+                if len(group) > 0:
+                    groups.append(group)
         self.swap(point1, point2)
         return len(groups) > 0
 
@@ -245,25 +253,29 @@ class Match3Board:
         best_score = 0
         for row in range(self.rows):
             for col in range(self.cols):
-                if self.board[row][col] == self.FATE:
-                    continue
                 for (x, y) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     neigh_x = col + x
                     neigh_y = row + y
-                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[neigh_y][neigh_x] == self.FATE:
+                    if self.out_of_bounds(neigh_x, neigh_y):
                         continue
+                        
+                    if self.board[row][col] == self.FATE and self.board[neigh_y][neigh_x] == self.FATE:
+                        continue
+                        
                     if self._match_key(self.board[row][col]) == self._match_key(self.board[neigh_y][neigh_x]):
                         continue
+                        
                     swap_points = ((col, row), (neigh_x, neigh_y))
                     self.swap(*swap_points)
                     groups = list()
-                    for (x, y) in swap_points:
-                        group = self.filter_group(self.get_group(x, y))
-                        if len(group) > 0:
-                            groups.append(group)
+                    for (nx, ny) in swap_points:
+                        if self.board[ny][nx] not in (self.FATE, self.empty):
+                            group = self.filter_group(self.get_group(nx, ny))
+                            if len(group) > 0:
+                                groups.append(group)
                     self.swap(*swap_points)
                     score = self.calc_score(groups)
-                    if score >= best_score:
+                    if score > best_score: 
                         best_score = score
                         best_play = (swap_points, groups)
         return best_play
