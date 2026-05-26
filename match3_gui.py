@@ -217,7 +217,7 @@ class Match3GUI:
         #[type][state]
         self.hobby_icons=[[None,None,None],[None,None,None],[None,None,None]]
         # [type][0]=generic(hobby_boost.png), [type][1]=state1, [type][2]=state2
-        self.hobby_boost_icons=[[None,None,None],[None,None,None],[None,None,None]]
+        self.hobby_boost_icons=[[None,None,None,None],[None,None,None,None],[None,None,None,None]]
         self.hobby_type=None
         self.chance_icon_s0=None
         self.chance_icons=[None, None, None]#(love/religious/mastermind)
@@ -532,7 +532,7 @@ class Match3GUI:
         elif color_index==B.BOOST_HOBBY:
             if self.hobby_type is not None and self.hobby_state>0:
                 # [type][1]=state1, [type][2]=state2/3
-                state_idx=min(self.hobby_state, 2)
+                state_idx=min(self.hobby_state, 3)
                 icon=self.hobby_boost_icons[self.hobby_type][state_idx]
             if icon is None:
                 # state=0 hoặc chưa có icon riêng → dùng generic [0][0]=hobby_boost.png
@@ -1216,8 +1216,8 @@ class Match3GUI:
         if self.hobby_type is None:
             return self.hobby_icon_s0
         # boost icon index matches current state (capped at 2; state 3 uses index 2)
-        idx = min(max(self.hobby_state, 0), 2)
-        for i in (idx, 1, 0):
+        idx = min(max(self.hobby_state, 0), 3)
+        for i in range(idx, -1, -1):
             ic = self.hobby_boost_icons[self.hobby_type][i]
             if ic is not None:
                 return ic
@@ -1416,7 +1416,7 @@ class Match3GUI:
                 path=f"media/images/block/hobby_{tname}{stage}.png"
                 if os.path.isfile(path):
                     self.hobby_icons[t][s]=pygame.image.load(path).convert_alpha()
-            for s, stage in enumerate(["1", "2"]):
+            for s, stage in enumerate(["1", "2", "3"]):
                 path=f"media/images/block/hobby_{tname}{stage}_boost.png"
                 if os.path.isfile(path):
                     self.hobby_boost_icons[t][s+1]=pygame.image.load(path).convert_alpha()
