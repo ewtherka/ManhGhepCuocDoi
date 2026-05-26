@@ -1,9 +1,204 @@
-﻿import math
+import math
 import os
 import random
 import pygame
 from sys import exit
+import sys
 
+class Tailor:
+    def __init__(self, screen, clock, difficulty):
+        self.screen = screen
+        self.clock = clock
+        self.difficulty = difficulty
+        
+        # --- 1. THIẾT LẬP CÁC BIẾN SỐ CƠ BẢN (KHÔNG ĐỔI) ---
+        self.box_width = 450
+        self.box_height = 250
+        self.bar_width = 350 # Độ rộng logic thanh may, dùng chung
+        
+        # --- 2. THIẾT LẬP THỜI GIAN VÀ TỐC ĐỘ THEO ĐỘ KHÓ (KHÔNG ĐỔI) ---
+        if self.difficulty == 0:
+            self.max_time = 20.0
+            self.needle_speed = 130.0
+        elif self.difficulty == 1:
+            self.max_time = 25.0
+            self.needle_speed = 110.0
+        else:
+            self.max_time = 20.0
+            self.needle_speed = 140.0
+            
+        self.time_left = self.max_time
+        self.needle_pos = 0.0  
+        self.needle_dir = 1 
+        
+        # --- SỬA LỖI Ô VUÔNG TIẾNG VIỆT ---
+        self.font = pygame.font.SysFont('arial', 24, bold=True)
+        self.title_font = pygame.font.SysFont('arial', 32, bold=True)
+        
+        # =========================================================================
+        # --- 3. ĐỒNG BỘ VISUAL (THẨM MỸ) VÀ LOGIC (BẮT ĐẦU SỬA Ở ĐÂY) ---
+        # =========================================================================
+        
+        # BƯỚC 3.1: Định nghĩa kích thước hiển thị mong muốn (Target & Needle)
+        target_display_width_px = 30   # [THẨM MỸ] Bạn muốn cái thớt rộng bao nhiêu pixel? (Gán 30 cho nhỏ đẹp)
+        needle_display_width_px = 15   # [THẨM MỸ] Cây kim rộng bao nhiêu? (Nên nhỏ hơn thớt, vd: 15)
+        
+        # BƯỚC 3.2: Buộc Logic phải tính toán theo Visual
+        self.target_width = (target_display_width_px / self.bar_width) * 100.0
+        
+        # --- THÊM DÒNG NÀY: Tính nửa chiều rộng ---
+        half_target = self.target_width / 2.0
+        
+        # BƯỚC 3.3: Khởi tạo vị trí ngẫu nhiên NHƯNG LÀ TÂM CỦA THỚT
+        # Random từ nửa thớt đến (100 - nửa thớt)
+        self.target_pos = random.uniform(half_target, 100.0 - half_target)
+        
+        # BƯỚC 3.4: Định nghĩa vùng ăn điểm thực tế (Hitbox) khắt khe bên trong
+        # Số này phải nhỏ hơn self.target_width (khoảng 8.57) thì mới nằm trong thớt được.
+        # Ví dụ đặt là 4.0 -> Vùng accept chỉ rộng 4% (~14px) nằm ngay giữa thớt.
+        self.hitbox_width = 4.0
+
+        # --- 4. TẢI VÀ SCALE HÌNH ẢNH THEO KÍCH THƯỚC ĐÃ ĐỊNH NGHĨA ---
+        try:
+            self.bg_img = pygame.image.load("media/images/ui/handicraft_background.png").convert_alpha()
+            self.bg_img = pygame.transform.scale(self.bg_img, (self.box_width, self.box_height))
+            
+            # Target - Scale đúng theo target_display_width_px (30)
+            self.target_img = pygame.image.load("media/images/ui/target.png").convert_alpha()
+            orig_w, orig_h = self.target_img.get_size()
+            new_h = int(target_display_width_px * orig_h / orig_w) 
+            self.target_img = pygame.transform.scale(self.target_img, (target_display_width_px, new_h))
+            
+            # Needle - Scale đúng theo needle_display_width_px (15)
+            self.needle_img = pygame.image.load("media/images/ui/needle.png").convert_alpha()
+            orig_w, orig_h = self.needle_img.get_size()
+            new_h = int(needle_display_width_px * orig_h / orig_w) 
+            self.needle_img = pygame.transform.scale(self.needle_img, (35, 35))
+            
+        except FileNotFoundError:
+            print("Lỗi: Không tìm thấy file hình ảnh!")
+            self.bg_img = pygame.Surface((self.box_width, self.box_height))
+            self.bg_img.fill((250, 245, 235))
+            # Fallback dùng target_width cũ cho demo
+            self.target_img = pygame.Surface((int(350 * 15 / 100), 30))
+            self.target_img.fill((0, 255, 0))
+            self.needle_img = pygame.Surface((15, 40))
+            self.needle_img.fill((255, 0, 0))
+        
+        self.canvas = pygame.Surface((self.box_width, self.box_height))
+
+    def check_win(self):
+        # target_pos giờ đã là TÂM
+        target_center = self.target_pos 
+        
+        left_bound = target_center - (self.hitbox_width / 2.0)
+        right_bound = target_center + (self.hitbox_width / 2.0)
+        
+        if left_bound <= self.needle_pos <= right_bound:
+            return True
+        return False
+
+    # Bỏ tham số screen ở đây vì đã được truyền vào __init__
+    def run(self):
+        running = True
+        result = None 
+        
+        bar_width = 350
+        
+        # --- XÍCH THANH THỜI GIAN LÊN TRÊN --- 
+        timer_rect = pygame.Rect(50, 30, self.bar_width, 15)
+        sew_rect = pygame.Rect(50, 150, self.bar_width, 30)
+
+        while running:
+            # Sử dụng self.clock
+            dt = self.clock.tick(60) / 1000.0  
+            
+            self.time_left -= dt
+            if self.time_left <= 0:
+                self.time_left = 0
+                result = self.check_win() 
+                running = False
+                
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit() # Sử dụng sys.exit() chuẩn hơn exit()
+                
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        result = self.check_win()
+                        running = False
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        result = self.check_win() 
+                        running = False
+                    elif event.key == pygame.K_ESCAPE:
+                        result = None 
+                        running = False
+
+            self.needle_pos += self.needle_speed * self.needle_dir * dt
+            
+            if self.needle_pos >= 100.0:
+                self.needle_pos = 100.0
+                self.needle_dir = -1
+            elif self.needle_pos <= 0.0:
+                self.needle_pos = 0.0
+                self.needle_dir = 1
+
+            # --- VẼ UI ---
+            # --- VẼ UI LÊN CANVAS ẢO ---
+            self.canvas.fill((0, 0, 0))
+            self.canvas.blit(self.bg_img, (0, 0)) # Vẽ ở (0,0) vì canvas chuẩn 450x250
+
+            # Thanh thời gian (đổi self.screen thành self.canvas)
+            pygame.draw.rect(self.canvas, (200, 200, 200), timer_rect, border_radius=5)
+            current_timer_width = self.bar_width * (self.time_left / self.max_time)
+            timer_color = (0, 200, 0) if self.time_left > 2.0 else (220, 0, 0)
+            pygame.draw.rect(self.canvas, timer_color, (timer_rect.x, timer_rect.y, current_timer_width, timer_rect.height), border_radius=5)
+
+            # Vẽ Target (đổi self.screen thành self.canvas)
+            target_center_x = sew_rect.x + (self.bar_width * self.target_pos / 100)
+            target_rect = self.target_img.get_rect()
+            target_rect.centerx = target_center_x
+            target_rect.centery = sew_rect.centery
+            self.canvas.blit(self.target_img, target_rect)
+            
+            # Vẽ Needle (đổi self.screen thành self.canvas)
+            needle_x = sew_rect.x + (self.bar_width * self.needle_pos / 100)
+            needle_rect = self.needle_img.get_rect()
+            needle_rect.centerx = needle_x
+            needle_rect.centery = sew_rect.centery
+            self.canvas.blit(self.needle_img, needle_rect)
+
+            # --- PHÓNG TO CANVAS LÊN MÀN HÌNH THẬT (GIỮ ĐÚNG TỈ LỆ CHỮ NHẬT) ---
+            # 1. Lấy kích thước hiện tại của màn hình được truyền vào (board_surf)
+            current_screen_w, current_screen_h = self.screen.get_size()
+            
+            # 2. Tính toán tỉ lệ scale theo chiều ngang (fit width)
+            scale_ratio = current_screen_w / self.box_width
+            new_w = current_screen_w
+            new_h = int(self.box_height * scale_ratio)
+            
+            # 3. Phóng to canvas theo kích thước mới
+            scaled_canvas = pygame.transform.scale(self.canvas, (new_w, new_h))
+            
+            # 4. Tính toán tọa độ Y để canh giữa game theo chiều dọc
+            draw_y = (current_screen_h - new_h) // 2
+            
+            # 5. Tô nền đen toàn bộ vùng board để che đi những khoảng trống (viền) trên/dưới
+            self.screen.fill((0, 0, 0))
+            
+            # 6. In canvas đã phóng to lên màn hình thật tại vị trí đã canh giữa
+            self.screen.blit(scaled_canvas, (0, draw_y))
+
+            # Cập nhật màn hình
+            pygame.display.flip()
+
+        if result is not None:
+            pygame.time.delay(500)
+
+        return result
 
 class Fighter:
     """Melee fighter on a tiled 7×7 battlefield.
@@ -1290,6 +1485,6 @@ if __name__ == "__main__":
     screen = pygame.display.set_mode((480, 480), pygame.RESIZABLE)
     pygame.display.set_caption("Fighter – test")
     clock = pygame.time.Clock()
-    result = Fighter(screen, clock, difficulty).run()
+    result = Tailor(screen, clock, difficulty).run()
     print("Result:", "WIN" if result else "LOSE")
     pygame.quit()
