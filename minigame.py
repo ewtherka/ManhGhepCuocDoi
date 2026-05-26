@@ -60,17 +60,17 @@ class Tailor:
 
         # --- 4. TẢI VÀ SCALE HÌNH ẢNH THEO KÍCH THƯỚC ĐÃ ĐỊNH NGHĨA ---
         try:
-            self.bg_img = pygame.image.load("media/images/ui/handicraft_background.png").convert_alpha()
+            self.bg_img = pygame.image.load("media/images/minigame/handicraft/handicraft_background.png").convert_alpha()
             self.bg_img = pygame.transform.scale(self.bg_img, (self.box_width, self.box_height))
             
             # Target - Scale đúng theo target_display_width_px (30)
-            self.target_img = pygame.image.load("media/images/ui/target.png").convert_alpha()
+            self.target_img = pygame.image.load("media/images/minigame/handicraft/target.png").convert_alpha()
             orig_w, orig_h = self.target_img.get_size()
             new_h = int(target_display_width_px * orig_h / orig_w) 
             self.target_img = pygame.transform.scale(self.target_img, (target_display_width_px, new_h))
             
             # Needle - Scale đúng theo needle_display_width_px (15)
-            self.needle_img = pygame.image.load("media/images/ui/needle.png").convert_alpha()
+            self.needle_img = pygame.image.load("media/images/minigame/handicraft/needle.png").convert_alpha()
             orig_w, orig_h = self.needle_img.get_size()
             new_h = int(needle_display_width_px * orig_h / orig_w) 
             self.needle_img = pygame.transform.scale(self.needle_img, (35, 35))
