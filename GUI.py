@@ -196,7 +196,7 @@ class mainGUI(Match3GUI):
         #Block icon
         self.hobby_icon_s0=None
         self.hobby_icons=[[None,None,None],[None,None,None],[None,None,None]]
-        self.hobby_boost_icons=[[None,None,None],[None,None,None],[None,None,None]]
+        self.hobby_boost_icons=[[None,None,None,None],[None,None,None,None],[None,None,None,None]] #KVan sua
         self.chance_icon_s0=None
         self.chance_icons=[None,None,None]
         self.chance_boost_icon=None
@@ -252,7 +252,7 @@ class mainGUI(Match3GUI):
         #BOOST_HOBBY: icon boost theo type×state, fallback về ô [0][0] (icon boost chung)
         elif color_index==B.BOOST_HOBBY:
             if self.hobby_type is not None and self.hobby_state>0:
-                state_idx=min(self.hobby_state, 2)
+                state_idx=min(self.hobby_state, 3) #KVan sua
                 icon=self.hobby_boost_icons[self.hobby_type][state_idx]
             if icon is None:
                 icon=self.hobby_boost_icons[0][0]
@@ -356,8 +356,8 @@ class mainGUI(Match3GUI):
         if self.hobby_type is None:
             return self.hobby_icon_s0
         #thử boost icon ở state hiện tại, lùi dần về state thấp nếu thiếu
-        idx=min(max(self.hobby_state, 0), 2)
-        for i in (idx, 1, 0):
+        idx=min(max(self.hobby_state, 0), 3) #KVan sua
+        for i in range(idx, -1, -1): #KVan sua
             ic=self.hobby_boost_icons[self.hobby_type][i]
             if ic is not None:
                 return ic
@@ -829,6 +829,7 @@ class mainGUI(Match3GUI):
         self.philosopher_turns=0
         self.sage_turns=0
         self.prisoner_turns=0
+        self.turn_taken=False #KVan sua
         self.random_wheel_result=None
         self.failedbefore=False
         self.game_state=GameState.RUNNING
@@ -1252,7 +1253,7 @@ class mainGUI(Match3GUI):
     def minigame(self):
         difficulty=int(self.failedbefore)
         if self.hobby_type==0:
-            result=minigame.Snake(self.board_surf, self.clock, difficulty).run()
+            result=minigame.Tailor(self.board_surf, self.clock, difficulty).run() #KVan sua
         elif self.hobby_type==1:
             result=minigame.Fighter(self.board_surf, self.clock, difficulty).run()
         else:
@@ -1350,6 +1351,8 @@ class mainGUI(Match3GUI):
                     if not swap_valid:
                         self.animate_swap(tuple(board_pos_dst), self.board_pos_src)
                         self.board.swap(board_pos_dst, self.board_pos_src)
+                    else: #KVan sua
+                        self.turn_taken=True #KVan sua
                     self.mouse_state=MouseState.WAITING
             elif event.type==pygame.MOUSEBUTTONUP:
                 if event.button!=1:
@@ -1481,9 +1484,11 @@ class mainGUI(Match3GUI):
                 break
             populated_set=set(populated)
             groups=self.board.get_valid_groups()
-        if self.philosopher_turns>0: self.philosopher_turns-=1
-        if self.sage_turns>0: self.sage_turns-=1
-        if self.prisoner_turns>0: self.prisoner_turns-=1
+        if getattr(self, 'turn_taken', False): #KVan sua
+            if self.philosopher_turns>0: self.philosopher_turns-=1
+            if self.sage_turns>0: self.sage_turns-=1
+            if self.prisoner_turns>0: self.prisoner_turns-=1
+            self.turn_taken=False #KVan sua
         play=self.board.find_a_play()
         if len(play)==0:
             self.animate_clear([(x,y) for y in range(self.board.rows) for x in range(self.board.cols)], True)
@@ -1555,7 +1560,7 @@ class mainGUI(Match3GUI):
                 p=f"media/images/block/hobby_{tname}{stage}.png"
                 if os.path.isfile(p):
                     self.hobby_icons[t][s]=pygame.image.load(p).convert_alpha()
-            for s, stage in enumerate(["1","2"]):
+            for s, stage in enumerate(["1","2","3"]): #KVan sua
                 p=f"media/images/block/hobby_{tname}{stage}_boost.png"
                 if os.path.isfile(p):
                     self.hobby_boost_icons[t][s+1]=pygame.image.load(p).convert_alpha()

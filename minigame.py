@@ -1,9 +1,204 @@
-﻿import math
+import math
 import os
 import random
 import pygame
 from sys import exit
+import sys
 
+class Tailor:
+    def __init__(self, screen, clock, difficulty):
+        self.screen = screen
+        self.clock = clock
+        self.difficulty = difficulty
+        
+        # --- 1. THIẾT LẬP CÁC BIẾN SỐ CƠ BẢN (KHÔNG ĐỔI) ---
+        self.box_width = 450
+        self.box_height = 250
+        self.bar_width = 350 # Độ rộng logic thanh may, dùng chung
+        
+        # --- 2. THIẾT LẬP THỜI GIAN VÀ TỐC ĐỘ THEO ĐỘ KHÓ (KHÔNG ĐỔI) ---
+        if self.difficulty == 0:
+            self.max_time = 20.0
+            self.needle_speed = 130.0
+        elif self.difficulty == 1:
+            self.max_time = 25.0
+            self.needle_speed = 110.0
+        else:
+            self.max_time = 20.0
+            self.needle_speed = 140.0
+            
+        self.time_left = self.max_time
+        self.needle_pos = 0.0  
+        self.needle_dir = 1 
+        
+        # --- SỬA LỖI Ô VUÔNG TIẾNG VIỆT ---
+        self.font = pygame.font.SysFont('arial', 24, bold=True)
+        self.title_font = pygame.font.SysFont('arial', 32, bold=True)
+        
+        # =========================================================================
+        # --- 3. ĐỒNG BỘ VISUAL (THẨM MỸ) VÀ LOGIC (BẮT ĐẦU SỬA Ở ĐÂY) ---
+        # =========================================================================
+        
+        # BƯỚC 3.1: Định nghĩa kích thước hiển thị mong muốn (Target & Needle)
+        target_display_width_px = 30   # [THẨM MỸ] Bạn muốn cái thớt rộng bao nhiêu pixel? (Gán 30 cho nhỏ đẹp)
+        needle_display_width_px = 15   # [THẨM MỸ] Cây kim rộng bao nhiêu? (Nên nhỏ hơn thớt, vd: 15)
+        
+        # BƯỚC 3.2: Buộc Logic phải tính toán theo Visual
+        self.target_width = (target_display_width_px / self.bar_width) * 100.0
+        
+        # --- THÊM DÒNG NÀY: Tính nửa chiều rộng ---
+        half_target = self.target_width / 2.0
+        
+        # BƯỚC 3.3: Khởi tạo vị trí ngẫu nhiên NHƯNG LÀ TÂM CỦA THỚT
+        # Random từ nửa thớt đến (100 - nửa thớt)
+        self.target_pos = random.uniform(half_target, 100.0 - half_target)
+        
+        # BƯỚC 3.4: Định nghĩa vùng ăn điểm thực tế (Hitbox) khắt khe bên trong
+        # Số này phải nhỏ hơn self.target_width (khoảng 8.57) thì mới nằm trong thớt được.
+        # Ví dụ đặt là 4.0 -> Vùng accept chỉ rộng 4% (~14px) nằm ngay giữa thớt.
+        self.hitbox_width = 4.0
+
+        # --- 4. TẢI VÀ SCALE HÌNH ẢNH THEO KÍCH THƯỚC ĐÃ ĐỊNH NGHĨA ---
+        try:
+            self.bg_img = pygame.image.load("media/images/minigame/handicraft/handicraft_background.png").convert_alpha()
+            self.bg_img = pygame.transform.scale(self.bg_img, (self.box_width, self.box_height))
+            
+            # Target - Scale đúng theo target_display_width_px (30)
+            self.target_img = pygame.image.load("media/images/minigame/handicraft/target.png").convert_alpha()
+            orig_w, orig_h = self.target_img.get_size()
+            new_h = int(target_display_width_px * orig_h / orig_w) 
+            self.target_img = pygame.transform.scale(self.target_img, (target_display_width_px, new_h))
+            
+            # Needle - Scale đúng theo needle_display_width_px (15)
+            self.needle_img = pygame.image.load("media/images/minigame/handicraft/needle.png").convert_alpha()
+            orig_w, orig_h = self.needle_img.get_size()
+            new_h = int(needle_display_width_px * orig_h / orig_w) 
+            self.needle_img = pygame.transform.scale(self.needle_img, (35, 35))
+            
+        except FileNotFoundError:
+            print("Lỗi: Không tìm thấy file hình ảnh!")
+            self.bg_img = pygame.Surface((self.box_width, self.box_height))
+            self.bg_img.fill((250, 245, 235))
+            # Fallback dùng target_width cũ cho demo
+            self.target_img = pygame.Surface((int(350 * 15 / 100), 30))
+            self.target_img.fill((0, 255, 0))
+            self.needle_img = pygame.Surface((15, 40))
+            self.needle_img.fill((255, 0, 0))
+        
+        self.canvas = pygame.Surface((self.box_width, self.box_height))
+
+    def check_win(self):
+        # target_pos giờ đã là TÂM
+        target_center = self.target_pos 
+        
+        left_bound = target_center - (self.hitbox_width / 2.0)
+        right_bound = target_center + (self.hitbox_width / 2.0)
+        
+        if left_bound <= self.needle_pos <= right_bound:
+            return True
+        return False
+
+    # Bỏ tham số screen ở đây vì đã được truyền vào __init__
+    def run(self):
+        running = True
+        result = None 
+        
+        bar_width = 350
+        
+        # --- XÍCH THANH THỜI GIAN LÊN TRÊN --- 
+        timer_rect = pygame.Rect(50, 30, self.bar_width, 15)
+        sew_rect = pygame.Rect(50, 150, self.bar_width, 30)
+
+        while running:
+            # Sử dụng self.clock
+            dt = self.clock.tick(60) / 1000.0  
+            
+            self.time_left -= dt
+            if self.time_left <= 0:
+                self.time_left = 0
+                result = self.check_win() 
+                running = False
+                
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit() # Sử dụng sys.exit() chuẩn hơn exit()
+                
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        result = self.check_win()
+                        running = False
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        result = self.check_win() 
+                        running = False
+                    elif event.key == pygame.K_ESCAPE:
+                        result = None 
+                        running = False
+
+            self.needle_pos += self.needle_speed * self.needle_dir * dt
+            
+            if self.needle_pos >= 100.0:
+                self.needle_pos = 100.0
+                self.needle_dir = -1
+            elif self.needle_pos <= 0.0:
+                self.needle_pos = 0.0
+                self.needle_dir = 1
+
+            # --- VẼ UI ---
+            # --- VẼ UI LÊN CANVAS ẢO ---
+            self.canvas.fill((0, 0, 0))
+            self.canvas.blit(self.bg_img, (0, 0)) # Vẽ ở (0,0) vì canvas chuẩn 450x250
+
+            # Thanh thời gian (đổi self.screen thành self.canvas)
+            pygame.draw.rect(self.canvas, (200, 200, 200), timer_rect, border_radius=5)
+            current_timer_width = self.bar_width * (self.time_left / self.max_time)
+            timer_color = (0, 200, 0) if self.time_left > 2.0 else (220, 0, 0)
+            pygame.draw.rect(self.canvas, timer_color, (timer_rect.x, timer_rect.y, current_timer_width, timer_rect.height), border_radius=5)
+
+            # Vẽ Target (đổi self.screen thành self.canvas)
+            target_center_x = sew_rect.x + (self.bar_width * self.target_pos / 100)
+            target_rect = self.target_img.get_rect()
+            target_rect.centerx = target_center_x
+            target_rect.centery = sew_rect.centery
+            self.canvas.blit(self.target_img, target_rect)
+            
+            # Vẽ Needle (đổi self.screen thành self.canvas)
+            needle_x = sew_rect.x + (self.bar_width * self.needle_pos / 100)
+            needle_rect = self.needle_img.get_rect()
+            needle_rect.centerx = needle_x
+            needle_rect.centery = sew_rect.centery
+            self.canvas.blit(self.needle_img, needle_rect)
+
+            # --- PHÓNG TO CANVAS LÊN MÀN HÌNH THẬT (GIỮ ĐÚNG TỈ LỆ CHỮ NHẬT) ---
+            # 1. Lấy kích thước hiện tại của màn hình được truyền vào (board_surf)
+            current_screen_w, current_screen_h = self.screen.get_size()
+            
+            # 2. Tính toán tỉ lệ scale theo chiều ngang (fit width)
+            scale_ratio = current_screen_w / self.box_width
+            new_w = current_screen_w
+            new_h = int(self.box_height * scale_ratio)
+            
+            # 3. Phóng to canvas theo kích thước mới
+            scaled_canvas = pygame.transform.scale(self.canvas, (new_w, new_h))
+            
+            # 4. Tính toán tọa độ Y để canh giữa game theo chiều dọc
+            draw_y = (current_screen_h - new_h) // 2
+            
+            # 5. Tô nền đen toàn bộ vùng board để che đi những khoảng trống (viền) trên/dưới
+            self.screen.fill((0, 0, 0))
+            
+            # 6. In canvas đã phóng to lên màn hình thật tại vị trí đã canh giữa
+            self.screen.blit(scaled_canvas, (0, draw_y))
+
+            # Cập nhật màn hình
+            pygame.display.flip()
+
+        if result is not None:
+            pygame.time.delay(500)
+
+        return result
 
 class Fighter:
     """Melee fighter on a tiled 7×7 battlefield.
@@ -525,8 +720,8 @@ class Minesweeper:
     """
 
     _DIFFICULTY = {
-        0: dict(cols=9, rows=9, mines=12),
-        1: dict(cols=7, rows=7, mines=7),
+        0: dict(cols=6, rows=6, mines=6),   # ~20-35s để thắng
+        1: dict(cols=5, rows=5, mines=4),   # ~15-25s để thắng (retry)
     }
 
     BG_COLOR      = (20,  20,  25)
@@ -752,544 +947,3 @@ class Minesweeper:
             sub = self.font.render("click to continue", True, (200, 200, 200))
             self.surf.blit(sub, ((self.w - sub.get_width()) // 2, by + lbl.get_height() + 6))
 
-
-# ====================================================================== #
-
-
-class Snake:
-    """Classic Snake minigame rendered on a given pygame Surface.
-
-    Controls: WASD or Arrow keys to change direction, ESC to quit.
-    Eat food to grow. Hit a wall or yourself → lose.
-    Eat enough food to win.
-
-    difficulty=0 → hard  (faster, more food needed to win)
-    difficulty=1 → easy  (slower, less food needed to win)
-
-    Returns True (won) or False (lost/quit) from run().
-    """
-
-    _DIFFICULTY = {
-        0: dict(cell=20, speed=10, win_score=20),  # hard: 10 moves/sec, need 20 food
-        1: dict(cell=28, speed=6,  win_score=10),  # easy:  6 moves/sec, need 10 food
-    }
-
-    BG_COLOR      = (15,  20,  15)
-    GRID_COLOR    = (25,  32,  25)
-    SNAKE_HEAD    = (80,  220, 80)
-    SNAKE_BODY    = (50,  170, 50)
-    SNAKE_BORDER  = (30,  100, 30)
-    FOOD_COLOR    = (220, 60,  60)
-    FOOD_BORDER   = (160, 30,  30)
-    TEXT_COLOR    = (220, 220, 220)
-
-    def __init__(self, surf: pygame.Surface, clock: pygame.time.Clock, difficulty: int = 0) -> None:
-        self.surf  = surf
-        self.clock = clock
-        self.w     = surf.get_width()
-        self.h     = surf.get_height()
-
-        cfg = self._DIFFICULTY.get(difficulty, self._DIFFICULTY[0])
-        self.cell      = cfg["cell"]
-        self.speed     = cfg["speed"]    # grid steps per second
-        self.win_score = cfg["win_score"]
-
-        self.cols = self.w // self.cell
-        self.rows = self.h // self.cell
-        self.ox   = (self.w - self.cols * self.cell) // 2
-        self.oy   = (self.h - self.rows * self.cell) // 2
-
-        fs = max(12, self.w // 20)
-        self.font     = pygame.font.SysFont("monospace", fs, bold=True)
-        self.font_big = pygame.font.SysFont("monospace", max(18, self.w // 12), bold=True)
-
-    # ------------------------------------------------------------------ #
-
-    def run(self) -> bool:
-        # Snake starts in the middle, length 3, moving right
-        mid_c = self.cols // 2
-        mid_r = self.rows // 2
-        snake  = [(mid_r, mid_c), (mid_r, mid_c - 1), (mid_r, mid_c - 2)]
-        direc  = (0, 1)   # (dr, dc)
-        next_d = direc    # buffered next direction
-
-        score     = 0
-        food      = self._spawn_food(snake)
-        game_over = False
-        won       = False
-
-        step_ms  = int(1000 / self.speed)
-        last_step = pygame.time.get_ticks()
-        running  = True
-
-        while running:
-            self.clock.tick(60)
-            now = pygame.time.get_ticks()
-
-            # ── Events ────────────────────────────────────────────────── #
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-                    # Direction input — cannot reverse 180°
-                    elif event.key in (pygame.K_UP,    pygame.K_w) and direc != (1, 0):
-                        next_d = (-1, 0)
-                    elif event.key in (pygame.K_DOWN,  pygame.K_s) and direc != (-1, 0):
-                        next_d = (1, 0)
-                    elif event.key in (pygame.K_LEFT,  pygame.K_a) and direc != (0, 1):
-                        next_d = (0, -1)
-                    elif event.key in (pygame.K_RIGHT, pygame.K_d) and direc != (0, -1):
-                        next_d = (0, 1)
-
-                # Click to close result screen
-                if event.type == pygame.MOUSEBUTTONDOWN and game_over:
-                    running = False
-
-            # ── Step snake ────────────────────────────────────────────── #
-            if not game_over and now - last_step >= step_ms:
-                last_step = now
-                direc = next_d
-                head_r, head_c = snake[0]
-                new_r = head_r + direc[0]
-                new_c = head_c + direc[1]
-
-                # Wall collision
-                if not (0 <= new_r < self.rows and 0 <= new_c < self.cols):
-                    game_over = True
-                # Self collision
-                elif (new_r, new_c) in snake:
-                    game_over = True
-                else:
-                    snake.insert(0, (new_r, new_c))
-                    if (new_r, new_c) == food:
-                        score += 1
-                        if score >= self.win_score:
-                            won = game_over = True
-                        else:
-                            food = self._spawn_food(snake)
-                    else:
-                        snake.pop()   # no growth → remove tail
-
-            # ── Draw ──────────────────────────────────────────────────── #
-            self._draw(snake, food, score, won if game_over else None)
-            pygame.display.flip()
-
-        return won
-
-    # ------------------------------------------------------------------ #
-
-    def _spawn_food(self, snake: list) -> tuple[int, int]:
-        snake_set = set(snake)
-        free = [
-            (r, c)
-            for r in range(self.rows) for c in range(self.cols)
-            if (r, c) not in snake_set
-        ]
-        return random.choice(free) if free else (0, 0)
-
-    def _cell_rect(self, r: int, c: int, inset: int = 1) -> pygame.Rect:
-        x = self.ox + c * self.cell + inset
-        y = self.oy + r * self.cell + inset
-        s = self.cell - inset * 2
-        return pygame.Rect(x, y, s, s)
-
-    def _draw(self, snake: list, food: tuple, score: int, result) -> None:
-        self.surf.fill(self.BG_COLOR)
-
-        # Subtle grid
-        for r in range(self.rows):
-            for c in range(self.cols):
-                pygame.draw.rect(self.surf, self.GRID_COLOR, self._cell_rect(r, c, 0), 1)
-
-        # Food
-        fr, fc = food
-        pygame.draw.rect(self.surf, self.FOOD_COLOR,   self._cell_rect(fr, fc, 2), border_radius=4)
-        pygame.draw.rect(self.surf, self.FOOD_BORDER,  self._cell_rect(fr, fc, 2), 2, border_radius=4)
-
-        # Snake body
-        for i, (r, c) in enumerate(snake):
-            color  = self.SNAKE_HEAD if i == 0 else self.SNAKE_BODY
-            pygame.draw.rect(self.surf, color,          self._cell_rect(r, c, 1), border_radius=4)
-            pygame.draw.rect(self.surf, self.SNAKE_BORDER, self._cell_rect(r, c, 1), 1, border_radius=4)
-
-        # Score & win target
-        lbl = self.font.render(f"Score: {score} / {self.win_score}", True, self.TEXT_COLOR)
-        self.surf.blit(lbl, (4, 4))
-
-        # Result overlay
-        if result is not None:
-            msg   = "YOU WIN!" if result else "GAME OVER"
-            color = (80, 220, 80) if result else (220, 60, 60)
-            lbl   = self.font_big.render(msg, True, color)
-            bx    = (self.w - lbl.get_width())  // 2
-            by    = (self.h - lbl.get_height()) // 2
-            pad   = 12
-            bg    = pygame.Surface((lbl.get_width() + pad*2, lbl.get_height() + pad*2), pygame.SRCALPHA)
-            bg.fill((0, 0, 0, 180))
-            self.surf.blit(bg, (bx - pad, by - pad))
-            self.surf.blit(lbl, (bx, by))
-            sub = self.font.render("click to continue", True, (200, 200, 200))
-            self.surf.blit(sub, ((self.w - sub.get_width()) // 2, by + lbl.get_height() + 6))
-
-
-# ====================================================================== #
-
-
-class RandomWheel:
-    """Banh xe quay may rui. Click chuot trai de dung.
-    Ti le: blank=85%, copper=10%, gold=5%.
-    run() tra ve "blank", "copper" hoac "gold".
-    """
-    SEGMENTS = [
-        ("blank",  (80,  80,  80),  85),
-        ("copper", (184, 115,  51), 10),
-        ("gold",   (212, 175,  55),  5),
-    ]
-    BG_COLOR   = (20, 20, 25)
-    TEXT_COLOR = (255, 255, 255)
-
-    def __init__(self, surf: pygame.Surface, clock: pygame.time.Clock) -> None:
-        self.surf  = surf
-        self.clock = clock
-        self.w     = surf.get_width()
-        self.h     = surf.get_height()
-        fs = max(16, self.w // 20)
-        self.font     = pygame.font.SysFont("monospace", fs, bold=True)
-        self.font_big = pygame.font.SysFont("monospace", max(20, self.w // 14), bold=True)
-        total = sum(s[2] for s in self.SEGMENTS)
-        angle = 0.0
-        self.seg_angles = []
-        for label, color, weight in self.SEGMENTS:
-            span = 360.0 * weight / total
-            self.seg_angles.append((angle, angle + span, color, label))
-            angle += span
-
-    def run(self) -> str:
-        cx, cy = self.w // 2, self.h // 2
-        radius = int(min(self.w, self.h) * 0.38)
-        speed  = random.uniform(300.0, 600.0)  # degrees/s
-        decel  = random.uniform(60.0, 120.0)   # degrees/s2
-        angle  = random.uniform(0, 360)
-        stopped = False
-        result  = "blank"
-
-        while True:
-            dt = self.clock.tick(60) / 1000.0
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    stopped = True
-
-            if not stopped:
-                angle = (angle + speed * dt) % 360
-                speed = max(0.0, speed - decel * dt)
-                if speed <= 0:
-                    stopped = True
-
-            self.surf.fill(self.BG_COLOR)
-
-            # Draw segments as filled polygons
-            for start_a, end_a, color, label in self.seg_angles:
-                da = start_a + angle
-                db = end_a   + angle
-                steps = max(4, int(abs(db - da) / 3))
-                pts = [(cx, cy)]
-                for i in range(steps + 1):
-                    a = math.radians(da + (db - da) * i / steps)
-                    pts.append((cx + radius * math.cos(a), cy - radius * math.sin(a)))
-                pygame.draw.polygon(self.surf, color, pts)
-                pygame.draw.polygon(self.surf, (0, 0, 0), pts, 1)
-
-                # Label at segment center
-                mid_a = math.radians((da + db) / 2)
-                tx = cx + int(radius * 0.62 * math.cos(mid_a))
-                ty = cy - int(radius * 0.62 * math.sin(mid_a))
-                lbl = self.font.render(label.upper(), True, self.TEXT_COLOR)
-                self.surf.blit(lbl, (tx - lbl.get_width() // 2, ty - lbl.get_height() // 2))
-
-            pygame.draw.circle(self.surf, (40, 40, 40), (cx, cy), 16)
-
-            # Pointer at top (0 degrees)
-            pygame.draw.polygon(self.surf, (255, 60, 60), [
-                (cx, cy - radius - 6),
-                (cx - 10, cy - radius + 14),
-                (cx + 10, cy - radius + 14),
-            ])
-
-            if not stopped or speed > 0:
-                hint = self.font.render("Click to stop", True, (200, 200, 200))
-                self.surf.blit(hint, (cx - hint.get_width() // 2, self.h - hint.get_height() - 12))
-
-            pygame.display.flip()
-
-            if stopped and speed <= 0:
-                # Needle at top = angle 90 in standard math coords
-                needle_a = (90.0 - angle) % 360
-                for start_a, end_a, _, label in self.seg_angles:
-                    s, e = start_a % 360, end_a % 360
-                    if s <= e:
-                        if s <= needle_a < e:
-                            result = label; break
-                    else:
-                        if needle_a >= s or needle_a < e:
-                            result = label; break
-
-                res_colors = {"blank": (120,120,120), "copper": (184,115,51), "gold": (212,175,55)}
-                res_lbl = self.font_big.render(result.upper(), True, res_colors.get(result, self.TEXT_COLOR))
-                self.surf.blit(res_lbl, (cx - res_lbl.get_width() // 2, cy - res_lbl.get_height() // 2))
-                pygame.display.flip()
-                pygame.time.wait(1200)
-                break
-
-        return result
-
-class TheWheelOfTruth:
-    """Vòng xoay liên tục. Click chuột trái để dừng.
-    Mũi tên cố định ở vị trí 1 giờ (30° từ đỉnh, theo chiều kim đồng hồ).
-    run() trả về "blank", "copper" hoặc "gold".
-    Sau khi dừng hiện dialogue box kết quả, click tiếp để đóng.
-    Tỉ lệ: blank=85%, copper=10%, gold=5%.
-    """
-
-    SEGMENTS = [
-        ("blank",  (180,  30,  30),  85),   # đỏ
-        ("copper", (184, 115,  51), 10),    # đồng thau
-        ("gold",   (212, 175,  55),  5),    # vàng
-    ]
-    # Mũi tên tại 1 giờ = 60° trong tọa độ toán học (0°=phải, 90°=trên)
-    NEEDLE_ANGLE = 60.0
-
-    BG_COLOR   = (15, 15, 20)
-    TEXT_COLOR = (240, 230, 210)
-    RESULT_COLORS = {
-        "blank":  (160, 155, 145),
-        "copper": (200, 130,  60),
-        "gold":   (230, 190,  50),
-    }
-    RESULT_LABELS = {
-        "blank":  "Nothing...",
-        "copper": "Copper!",
-        "gold":   "Gold!",
-    }
-
-    # offset để chỉnh hướng arrow.png nếu ảnh không mặc định hướng lên
-    ARROW_ROTATION_OFFSET = 0
-
-    def __init__(self, surf: pygame.Surface, clock: pygame.time.Clock,
-                 wheel_path: str = None, arrow_path: str = None) -> None:
-        self.surf  = surf
-        self.clock = clock
-        self.w     = surf.get_width()
-        self.h     = surf.get_height()
-        fs = max(14, self.w // 22)
-        self.font     = pygame.font.SysFont("monospace", fs, bold=True)
-        self.font_big = pygame.font.SysFont("monospace", max(20, self.w // 13), bold=True)
-
-        total = sum(s[2] for s in self.SEGMENTS)
-        a = 0.0
-        self.seg_angles: list[tuple[float, float, tuple, str]] = []
-        for label, color, weight in self.SEGMENTS:
-            span = 360.0 * weight / total
-            self.seg_angles.append((a, a + span, color, label))
-            a += span
-
-        # Load ảnh tùy chọn
-        diameter = int(min(self.w, self.h) * 0.76)
-        self.wheel_img = None
-        self.arrow_img = None
-        if wheel_path and os.path.isfile(wheel_path):
-            img = pygame.image.load(wheel_path).convert_alpha()
-            self.wheel_img = pygame.transform.smoothscale(img, (diameter, diameter))
-        if arrow_path and os.path.isfile(arrow_path):
-            self.arrow_img = pygame.image.load(arrow_path).convert_alpha()
-
-    # ------------------------------------------------------------------ #
-
-    def _draw_wheel(self, cx: int, cy: int, radius: int, angle: float) -> None:
-        """Vẽ vòng xoay. Nếu có wheel.png thì dùng ảnh, fallback vẽ code."""
-        if self.wheel_img is not None:
-            rotated = pygame.transform.rotozoom(self.wheel_img, angle, 1.0)
-            self.surf.blit(rotated, (cx - rotated.get_width() // 2,
-                                     cy - rotated.get_height() // 2))
-            pygame.draw.circle(self.surf, (40, 35, 30), (cx, cy), 14)
-            pygame.draw.circle(self.surf, (200, 190, 170), (cx, cy), 14, 2)
-            return
-
-        for start_a, end_a, color, label in self.seg_angles:
-            da = start_a + angle
-            db = end_a   + angle
-            steps = max(4, int(abs(db - da) / 2))
-            pts = [(cx, cy)]
-            for i in range(steps + 1):
-                rad = math.radians(da + (db - da) * i / steps)
-                pts.append((cx + radius * math.cos(rad),
-                            cy - radius * math.sin(rad)))
-            pygame.draw.polygon(self.surf, color, pts)
-            pygame.draw.polygon(self.surf, (0, 0, 0), pts, 1)
-
-            # Chỉ blank mới có chữ "FAILED" màu trắng
-            if label == "blank":
-                mid_rad = math.radians((da + db) / 2)
-                tx = cx + int(radius * 0.60 * math.cos(mid_rad))
-                ty = cy - int(radius * 0.60 * math.sin(mid_rad))
-                lbl = self.font.render("FAILED", True, (255, 255, 255))
-                self.surf.blit(lbl, (tx - lbl.get_width() // 2,
-                                     ty - lbl.get_height() // 2))
-
-        # Vòng viền ngoài
-        pygame.draw.circle(self.surf, (200, 190, 170), (cx, cy), radius, 3)
-        # Tâm
-        pygame.draw.circle(self.surf, (40, 35, 30), (cx, cy), 14)
-        pygame.draw.circle(self.surf, (200, 190, 170), (cx, cy), 14, 2)
-
-    def _draw_needle(self, cx: int, cy: int, radius: int) -> None:
-        """Vẽ mũi tên tại 1 giờ. Nếu có arrow.png thì dùng ảnh, fallback vẽ code.
-        arrow.png nên hướng lên (12 giờ). Chỉnh ARROW_ROTATION_OFFSET nếu cần."""
-        if self.arrow_img is not None:
-            # Mũi tên cố định ở NEEDLE_ANGLE, xoay từ hướng mặc định (lên=90°) sang NEEDLE_ANGLE
-            # pygame.transform.rotate dương = ngược chiều kim đồng hồ (trên màn hình)
-            # Từ 90° (lên) → NEEDLE_ANGLE: xoay (90 - NEEDLE_ANGLE) theo chiều CW trên màn hình
-            #   = rotate(-(90 - NEEDLE_ANGLE)) trong pygame
-            rotation = -(90 - self.NEEDLE_ANGLE) + self.ARROW_ROTATION_OFFSET
-            rotated = pygame.transform.rotozoom(self.arrow_img, rotation, 1.0)
-            nad = math.radians(self.NEEDLE_ANGLE)
-            # Đặt gốc mũi tên tại rìa vòng
-            px = cx + int((radius + rotated.get_height() // 2) * math.cos(nad))
-            py = cy - int((radius + rotated.get_height() // 2) * math.sin(nad))
-            self.surf.blit(rotated, (px - rotated.get_width() // 2,
-                                     py - rotated.get_height() // 2))
-            return
-
-        nad = math.radians(self.NEEDLE_ANGLE)
-        # Điểm đầu mũi tên (ngoài vòng)
-        tip_x = cx + int((radius + 22) * math.cos(nad))
-        tip_y = cy - int((radius + 22) * math.sin(nad))
-        # Gốc mũi tên (trên vòng)
-        base_x = cx + int((radius - 8) * math.cos(nad))
-        base_y = cy - int((radius - 8) * math.sin(nad))
-        # Hai cánh mũi tên (vuông góc với hướng)
-        perp = math.radians(self.NEEDLE_ANGLE + 90)
-        wing = 9
-        w1x = base_x + int(wing * math.cos(perp))
-        w1y = base_y - int(wing * math.sin(perp))
-        w2x = base_x - int(wing * math.cos(perp))
-        w2y = base_y + int(wing * math.sin(perp))
-        pts = [(tip_x, tip_y), (w1x, w1y), (w2x, w2y)]
-        pygame.draw.polygon(self.surf, (0, 0, 0), pts, 4)      # viền đen
-        pygame.draw.polygon(self.surf, (255, 255, 255), pts)   # fill trắng
-        pygame.draw.polygon(self.surf, (0, 0, 0), pts, 2)      # viền đen mỏng trên cùng
-
-    def _get_result(self, angle: float) -> str:
-        """Xác định ô mũi tên đang chỉ vào."""
-        needle_on_wheel = (self.NEEDLE_ANGLE - angle) % 360
-        for start_a, end_a, _, label in self.seg_angles:
-            s = start_a % 360
-            e = end_a   % 360
-            if s < e:
-                if s <= needle_on_wheel < e:
-                    return label
-            else:  # wrap around 360
-                if needle_on_wheel >= s or needle_on_wheel < e:
-                    return label
-        return self.seg_angles[-1][3]
-
-    def _show_result_dialog(self, cx: int, cy: int, result: str) -> None:
-        """Hiện dialogue box kết quả, chờ click để đóng."""
-        color  = self.RESULT_COLORS.get(result, self.TEXT_COLOR)
-        label  = self.RESULT_LABELS.get(result, result.upper())
-        box_w, box_h = int(self.w * 0.55), int(self.h * 0.28)
-        bx = cx - box_w // 2
-        by = cy - box_h // 2
-
-        overlay = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 160))
-        self.surf.blit(overlay, (0, 0))
-
-        pygame.draw.rect(self.surf, (30, 28, 24),
-                         (bx, by, box_w, box_h), border_radius=12)
-        pygame.draw.rect(self.surf, color,
-                         (bx, by, box_w, box_h), width=3, border_radius=12)
-
-        result_lbl = self.font_big.render(label, True, color)
-        hint_lbl   = self.font.render("Click to continue", True, (160, 150, 130))
-        self.surf.blit(result_lbl, (cx - result_lbl.get_width() // 2,
-                                    by + box_h // 2 - result_lbl.get_height()))
-        self.surf.blit(hint_lbl,   (cx - hint_lbl.get_width() // 2,
-                                    by + box_h // 2 + 8))
-        pygame.display.flip()
-
-        waiting = True
-        while waiting:
-            self.clock.tick(30)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    waiting = False
-
-    # ------------------------------------------------------------------ #
-
-    def run(self) -> str:
-        cx = self.w // 2
-        cy = self.h // 2
-        radius = int(min(self.w, self.h) * 0.38)
-        speed  = random.uniform(180.0, 360.0)  # degrees/s (xoay liên tục)
-        angle  = random.uniform(0, 360)
-        decel  = random.uniform(120.0, 200.0)  # degrees/s²
-        stopping = False
-
-        while True:
-            dt = self.clock.tick(60) / 1000.0
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if not stopping:
-                        stopping = True
-
-            if stopping:
-                speed = max(0.0, speed - decel * dt)
-            else:
-                # Xoay liên tục với tốc độ ổn định
-                speed = max(speed, random.uniform(180.0, 280.0)) if speed < 100 else speed
-
-            angle = (angle + speed * dt) % 360
-
-            # Vẽ
-            self.surf.fill(self.BG_COLOR)
-            self._draw_wheel(cx, cy, radius, angle)
-            self._draw_needle(cx, cy, radius)
-
-            if not stopping:
-                hint = self.font.render("Click to stop", True, (180, 170, 150))
-                self.surf.blit(hint, (cx - hint.get_width() // 2,
-                                      self.h - hint.get_height() - 16))
-
-            pygame.display.flip()
-
-            if stopping and speed <= 0:
-                result = self._get_result(angle)
-                self._show_result_dialog(cx, cy, result)
-                return result
-
-
-# ====================================================================== #
-
-if __name__ == "__main__":
-    import sys
-    difficulty = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-    pygame.init()
-    screen = pygame.display.set_mode((480, 480), pygame.RESIZABLE)
-    pygame.display.set_caption("Fighter – test")
-    clock = pygame.time.Clock()
-    result = Fighter(screen, clock, difficulty).run()
-    print("Result:", "WIN" if result else "LOSE")
-    pygame.quit()
