@@ -707,6 +707,137 @@ class Fighter:
 
 # ====================================================================== #
 
+direction = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, 0), (1, 1), (1, -1), (-1, 1)]
+
+class Cell():
+    def __init__(self):
+        self.isMine = False
+        self.isRevealed = False
+        self.isFlagged = False
+        self.neighbors = 0
+
+class Board():
+    def __init__(self, rows, cols, num, lives = 3):
+        self.rows = rows
+        self.cols = cols
+        self.num = num
+        self.grid = [[Cell() for _ in range(cols)] for _ in range(rows)]
+
+        self.lives = lives
+        self.game_over = False
+        self.is_win = False
+
+    def place_mines(self, first_row, first_col):
+        mines_placed = 0
+        while mines_placed < self.num:
+            r = random.randint(0, self.rows - 1)
+            c = random.randint(0, self.cols - 1)
+
+            if abs(r - first_row) <= 1 and abs(c - first_col) <= 1:
+                continue
+
+            if r == first_row and c == first_col:
+                continue
+
+            if self.grid[r][c].isMine:
+                continue
+
+            self.grid[r][c].isMine = True
+            mines_placed += 1
+
+        self.calculate_neighbors()
+
+    def calculate_neighbors(self):
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.grid[r][c].isMine:
+                    continue
+        
+                count = 0
+                for dr, dc in direction:
+                    nr = dr + r
+                    nc = dc + c
+                    if 0 <= nr < self.rows and 0 <= nc < self.cols:
+                        if self.grid[nr][nc].isMine:
+                            count += 1
+                
+                self.grid[r][c].neighbors = count
+
+    def reveal(self, r, c):
+        if self.game_over:
+            return
+        
+        if r < 0 or r >= self.rows or c < 0 or c >= self.cols:
+            return
+        
+        cell = self.grid[r][c]
+
+        if cell.isRevealed or cell.isFlagged:
+            return
+        
+        cell.isRevealed = True
+
+        if cell.isMine:
+            self.lives -= 1
+            if self.lives < 0:
+                self.game_over = True
+                self.is_win = False
+                self.reveal_all()
+            return
+        
+        if cell.neighbors == 0:
+            for dr, dc in direction:
+                self.reveal(r + dr, c + dc)
+
+    def reveal_safe_around(self, r, c):
+        if self.game_over:
+            return
+            
+        cell = self.grid[r][c]
+        
+        if not cell.isRevealed or cell.neighbors == 0:
+            return
+
+        opened_mines = 0
+        flag_count = 0
+        for dr, dc in direction:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < self.rows and 0 <= nc < self.cols:
+                if self.grid[nr][nc].isFlagged:
+                    flag_count += 1
+                elif self.grid[nr][nc].isMine and self.grid[nr][nc].isRevealed:
+                    opened_mines += 1
+
+        if (flag_count == cell.neighbors) or (flag_count + opened_mines == cell.neighbors):
+            for dr, dc in direction:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.rows and 0 <= nc < self.cols:
+                    neighbor_cell = self.grid[nr][nc]
+                    if not neighbor_cell.isRevealed and not neighbor_cell.isFlagged:
+                        self.reveal(nr, nc)
+
+    def check_win(self):
+        if self.game_over:
+            return
+        
+        revealed_count = 0
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.grid[r][c].isRevealed and not self.grid[r][c].isMine:
+                    revealed_count += 1
+        
+        target = self.rows * self.cols - self.num
+
+        if revealed_count == target:
+            self.game_over = True
+            self.is_win = True
+            self.reveal_all()
+
+    def reveal_all(self):
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.grid[r][c].isMine:
+                    self.grid[r][c].isRevealed = True
 
 class Minesweeper:
     """Minesweeper minigame rendered on a given pygame Surface.
@@ -715,8 +846,8 @@ class Minesweeper:
     First click is always safe (mines placed after first click).
     Returns True (won) or False (lost/quit) from run().
 
-    difficulty=0 → hard  ( 9×9,  12 mines)
-    difficulty=1 → easy  ( 7×7,   7 mines)
+    difficulty=0 → hard  ( 6×6,  6 mines)
+    difficulty=1 → easy  ( 5×5,   4 mines)
     """
 
     _DIFFICULTY = {
@@ -765,9 +896,7 @@ class Minesweeper:
         self.font      = pygame.font.SysFont("monospace", fs, bold=True)
         self.font_big  = pygame.font.SysFont("monospace", max(16, self.w // 12), bold=True)
 
-        self.grid      = [[0]     * self.cols for _ in range(self.rows)]
-        self.revealed  = [[False] * self.cols for _ in range(self.rows)]
-        self.flagged   = [[False] * self.cols for _ in range(self.rows)]
+        self.board = Board(self.rows, self.cols, self.total_mines, lives=0)
         self.first_click = True
         self.flags_left  = self.total_mines
 
@@ -775,8 +904,6 @@ class Minesweeper:
 
     def run(self) -> bool:
         running     = True
-        game_over   = False
-        won         = False
         hit_mine_rc = None   # (r, c) of mine that was clicked
 
         while running:
@@ -789,85 +916,61 @@ class Minesweeper:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
 
-                if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                if event.type == pygame.MOUSEBUTTONDOWN and not self.board.game_over:
                     # Adjust mouse pos to surf-local coords
                     sx, sy = self.surf.get_abs_offset()
                     mx, my = event.pos[0] - sx, event.pos[1] - sy
-                    cell = self._pixel_to_cell(mx, my)
-                    if cell is None:
+                    cell_pos = self._pixel_to_cell(mx, my)
+                    if cell_pos is None:
                         continue
-                    r, c = cell
+                    r, c = cell_pos
+                    
+                    b_cell = self.board.grid[r][c]
 
-                    if event.button == 1:    # left click → reveal
-                        if self.flagged[r][c]:
+                    if event.button == 1:    # left click → reveal or chord
+                        if b_cell.isFlagged:
                             continue
                         if self.first_click:
-                            self._place_mines(r, c)
+                            self.board.place_mines(r, c)
                             self.first_click = False
-                        if self.grid[r][c] == -1:
-                            self.revealed[r][c] = True
-                            hit_mine_rc = (r, c)
-                            game_over   = True
+                            
+                        # If already revealed, try chording
+                        if b_cell.isRevealed and b_cell.neighbors > 0:
+                            self.board.reveal_safe_around(r, c)
                         else:
-                            self._flood_reveal(r, c)
-                            if self._check_win():
-                                won = game_over = True
+                            if b_cell.isMine and not b_cell.isRevealed:
+                                hit_mine_rc = (r, c)
+                            self.board.reveal(r, c)
+                            
+                        self.board.check_win()
 
-                    elif event.button == 3:  # right click → flag
-                        if not self.revealed[r][c]:
-                            if self.flagged[r][c]:
-                                self.flagged[r][c] = False
-                                self.flags_left += 1
+                    elif event.button == 3:  # right click → flag or chord
+                        if not b_cell.isRevealed:
+                            if b_cell.isFlagged:
+                                b_cell.isFlagged = False
                             elif self.flags_left > 0:
-                                self.flagged[r][c] = True
-                                self.flags_left -= 1
+                                b_cell.isFlagged = True
+                        else:
+                            # Chording on right click too
+                            self.board.reveal_safe_around(r, c)
+                            self.board.check_win()
 
                 # Close result overlay on any click after game ends
-                if event.type == pygame.MOUSEBUTTONDOWN and game_over:
+                if event.type == pygame.MOUSEBUTTONDOWN and self.board.game_over:
                     running = False
 
-            self._draw(hit_mine_rc, won if game_over else None)
+            # Update flags left calculation
+            used_flags = sum(1 for r in range(self.board.rows) for c in range(self.board.cols) if self.board.grid[r][c].isFlagged)
+            self.flags_left = self.total_mines - used_flags
+
+            self._draw(hit_mine_rc, self.board.is_win if self.board.game_over else None)
             pygame.display.flip()
 
-        return won
+        return self.board.is_win
 
     # ------------------------------------------------------------------ #
     # Grid logic
     # ------------------------------------------------------------------ #
-
-    def _place_mines(self, safe_r: int, safe_c: int) -> None:
-        safe = {
-            (safe_r + dr, safe_c + dc)
-            for dr in range(-1, 2) for dc in range(-1, 2)
-            if 0 <= safe_r + dr < self.rows and 0 <= safe_c + dc < self.cols
-        }
-        pool = [(r, c) for r in range(self.rows) for c in range(self.cols) if (r, c) not in safe]
-        for r, c in random.sample(pool, min(self.total_mines, len(pool))):
-            self.grid[r][c] = -1
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.grid[r][c] == -1:
-                    continue
-                self.grid[r][c] = sum(
-                    1 for dr in range(-1, 2) for dc in range(-1, 2)
-                    if 0 <= r+dr < self.rows and 0 <= c+dc < self.cols
-                    and self.grid[r+dr][c+dc] == -1
-                )
-
-    def _flood_reveal(self, start_r: int, start_c: int) -> None:
-        stack = [(start_r, start_c)]
-        while stack:
-            r, c = stack.pop()
-            if not (0 <= r < self.rows and 0 <= c < self.cols):
-                continue
-            if self.revealed[r][c] or self.flagged[r][c]:
-                continue
-            self.revealed[r][c] = True
-            if self.grid[r][c] == 0:
-                for dr in range(-1, 2):
-                    for dc in range(-1, 2):
-                        if dr or dc:
-                            stack.append((r + dr, c + dc))
 
     def _pixel_to_cell(self, mx: int, my: int):
         c = (mx - self.ox) // self.cell
@@ -875,13 +978,6 @@ class Minesweeper:
         if 0 <= r < self.rows and 0 <= c < self.cols:
             return r, c
         return None
-
-    def _check_win(self) -> bool:
-        return all(
-            self.revealed[r][c]
-            for r in range(self.rows) for c in range(self.cols)
-            if self.grid[r][c] != -1
-        )
 
     # ------------------------------------------------------------------ #
     # Drawing
@@ -896,10 +992,11 @@ class Minesweeper:
                 x = self.ox + c * cs
                 y = self.oy + r * cs
                 rect = pygame.Rect(x + 1, y + 1, cs - 2, cs - 2)
+                
+                b_cell = self.board.grid[r][c]
 
-                if self.revealed[r][c]:
-                    v = self.grid[r][c]
-                    if v == -1:
+                if b_cell.isRevealed:
+                    if b_cell.isMine:
                         # Mine — show red if it was the clicked one
                         color = self.COLOR_EXPLODE if hit_mine_rc == (r, c) else self.COLOR_MINE
                         pygame.draw.rect(self.surf, color, rect, border_radius=3)
@@ -910,6 +1007,7 @@ class Minesweeper:
                         pygame.draw.line(self.surf, (200, 200, 200),
                                          (x + cs - m, y + m), (x + m, y + cs - m), 2)
                     else:
+                        v = b_cell.neighbors
                         pygame.draw.rect(self.surf, self.COLOR_OPEN, rect, border_radius=3)
                         if v > 0:
                             lbl = self.font.render(str(v), True, self.NUMBER_COLORS[v])
@@ -917,7 +1015,7 @@ class Minesweeper:
                                 x + (cs - lbl.get_width())  // 2,
                                 y + (cs - lbl.get_height()) // 2,
                             ))
-                elif self.flagged[r][c]:
+                elif b_cell.isFlagged:
                     pygame.draw.rect(self.surf, self.COLOR_HIDDEN, rect, border_radius=3)
                     # Draw flag (F)
                     lbl = self.font.render("F", True, self.COLOR_FLAG)
@@ -947,3 +1045,112 @@ class Minesweeper:
             sub = self.font.render("click to continue", True, (200, 200, 200))
             self.surf.blit(sub, ((self.w - sub.get_width()) // 2, by + lbl.get_height() + 6))
 
+
+class SlotMachine:
+    """Single-reel slot machine for the Chance threshold."""
+    def __init__(self, surf: pygame.Surface, clock: pygame.time.Clock, difficulty: int = 0) -> None:
+        self.surf = surf
+        self.clock = clock
+        self.w = surf.get_width()
+        self.h = surf.get_height()
+
+        self.items = [ "FAILED", "copper", "FAILED", "FAILED", "gold", "FAILED", "copper", "FAILED" ]
+        random.shuffle(self.items)
+
+        self.item_height = max(80, self.h // 3)
+        self.speed = 1000.0 # pixels per second
+        self.offset = 0.0
+
+        self.font = pygame.font.SysFont("monospace", max(24, self.item_height // 3), bold=True)
+        self.result = None
+
+    def run(self) -> str:
+        running = True
+        stopped = False
+        target_offset = 0.0
+        wait_timer = 0.0
+
+        while running:
+            dt = self.clock.tick(60) / 1000.0
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE and not stopped:
+                        stopped = True
+                        target_offset = self._calculate_snap()
+                    elif event.key == pygame.K_ESCAPE:
+                        return "FAILED"
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not stopped:
+                    stopped = True
+                    target_offset = self._calculate_snap()
+
+            if not stopped:
+                self.offset += self.speed * dt
+                max_offset = len(self.items) * self.item_height
+                self.offset %= max_offset
+            else:
+                diff = target_offset - self.offset
+                max_offset = len(self.items) * self.item_height
+                if diff > max_offset / 2:
+                    diff -= max_offset
+                elif diff < -max_offset / 2:
+                    diff += max_offset
+
+                if abs(diff) < 2.0:
+                    self.offset = target_offset
+                    wait_timer += dt
+                    if wait_timer >= 1.0:
+                        running = False
+                else:
+                    self.offset += diff * 15.0 * dt
+                    self.offset %= max_offset
+
+            self.draw(stopped)
+            pygame.display.flip()
+
+        return self.result
+
+    def _calculate_snap(self) -> float:
+        # Tọa độ item mong muốn là ở giữa màn hình (y_draw ≈ 0 vì gốc của clip_surf là cx, cy)
+        # Cách tính: offset được hiểu là vị trí của item 0.
+        idx = round(self.offset / self.item_height) % len(self.items)
+        target_offset = idx * self.item_height
+        self.result = self.items[idx]
+        return target_offset
+
+    def draw(self, stopped: bool) -> None:
+        self.surf.fill((20, 20, 30))
+
+        cx, cy = self.w // 2, self.h // 2
+        box_w, box_h = max(240, self.w // 2), self.item_height
+
+        rect = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
+        pygame.draw.rect(self.surf, (200, 200, 200), rect, border_radius=10)
+        pygame.draw.rect(self.surf, (50, 50, 50), rect, width=4, border_radius=10)
+
+        clip_surf = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+        colors = { "FAILED": (100, 100, 100), "copper": (205, 127, 50), "gold": (255, 215, 0) }
+
+        for i, item in enumerate(self.items):
+            y_base = i * self.item_height - self.offset
+            max_offset = len(self.items) * self.item_height
+
+            for y_draw in (y_base, y_base + max_offset, y_base - max_offset):
+                if -self.item_height <= y_draw <= box_h:
+                    text_color = colors.get(item, (255, 255, 255))
+                    lbl = self.font.render(item.upper(), True, text_color)
+                    lx = (box_w - lbl.get_width()) // 2
+                    ly = y_draw + (self.item_height - lbl.get_height()) // 2
+
+                    shadow = self.font.render(item.upper(), True, (0, 0, 0))
+                    clip_surf.blit(shadow, (lx + 2, ly + 2))
+                    clip_surf.blit(lbl, (lx, ly))
+
+        self.surf.blit(clip_surf, (cx - box_w // 2, cy - box_h // 2))
+
+        if not stopped:
+            inst = pygame.font.SysFont("monospace", max(18, self.w // 20), bold=True).render("Now is the time...", True, (255, 255, 255))
+            self.surf.blit(inst, (cx - inst.get_width()//2, cy + box_h // 2 + 20))

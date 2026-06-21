@@ -221,6 +221,7 @@ class mainGUI(Match3GUI):
         self.board_area_bg_scaled=None
         self.time_imgs=[None]*13
         self.time_plate_img=None
+        self.character_imgs=[None]*5
 
 
     ###DRAWING METHODS###
@@ -702,11 +703,25 @@ class mainGUI(Match3GUI):
         stage_lbl=fd.render(stage_names[min(self.life_stage, 4)], True, (138,69,51))
         self.sidebar_surf.blit(stage_lbl, (tf_x+(tf_w-stage_lbl.get_width())//2,
                                            tf_top+int(tf_h*0.20)))
+                                           
+        char_idx=min(self.life_stage, 4)
+        c_img=self.character_imgs[char_idx]
+        if c_img is not None:
+            c_area_h=int(tf_h*0.65)
+            c_area_w=int(tf_w*0.90)
+            cw,ch=c_img.get_size()
+            cs=min(c_area_w/cw, c_area_h/ch)
+            cnw,cnh=int(cw*cs),int(ch*cs)
+            c_scaled=pygame.transform.smoothscale(c_img, (cnw, cnh))
+            cx=tf_x+(tf_w-cnw)//2
+            cy=tf_top+int(tf_h*0.30)
+            self.sidebar_surf.blit(c_scaled, (cx, cy))
+
         hg_idx=min(self.time_count, 12)
         hg_img=self.hourglass_imgs[hg_idx] if hg_idx<len(self.hourglass_imgs) else None
         if hg_img is not None:
-            hg_area_h=int(tf_h*0.60)
-            hg_area_w=int(tf_w*0.70)
+            hg_area_h=int(tf_h*0.15)
+            hg_area_w=int(tf_w*0.40)
             hw,hh=hg_img.get_size()
             hs=min(hg_area_w/hw, hg_area_h/hh)
             hnw,hnh=int(hw*hs),int(hh*hs)
@@ -1300,11 +1315,18 @@ class mainGUI(Match3GUI):
                 self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type],
                                           icons=[self._chance_dialog_icon()])
         if self.chance_count>=50 and self.random_wheel_result is None:
-            roll=random.random()
-            result="gold" if roll<0.05 else "copper" if roll<0.15 else "blank"
-            self.random_wheel_result=result if result!="blank" else None
+            # Chạy minigame SlotMachine thay vì random tự động
+            result_spin = minigame.SlotMachine(self.board_surf, self.clock).run()
+            self.random_wheel_result = result_spin if result_spin != "FAILED" else None
+            
             if self.random_wheel_result is not None:
                 self.endings(1)
+            else:
+                # Nếu lặp lại "FAILED", thì đưa chance count về ngưỡng trước hoặc cho chơi tiếp
+                # Trong trường hợp này, chúng ta reset chance và yêu cầu người chơi kiếm lại điểm chance
+                self.chance_count = 0
+                self.chance_state = 0
+                self.chance_type = None
 
     ###EVENT PROCESSING###
 
@@ -1602,6 +1624,13 @@ class mainGUI(Match3GUI):
                 self.hourglass_imgs.append(pygame.image.load(p).convert_alpha())
             else:
                 self.hourglass_imgs.append(None)
+                
+        #Character icons
+        stage_names=["Newborn","Child","Teenager","Youth","Adult"]
+        for i, name in enumerate(stage_names):
+            p = f"media/images/character/{name}.png"
+            if os.path.isfile(p):
+                self.character_imgs[i] = pygame.image.load(p).convert_alpha()
 
     def run(self):
         data=dict()
