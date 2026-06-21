@@ -31,9 +31,10 @@ class Tailor:
         self.needle_pos = 0.0  
         self.needle_dir = 1 
         
-        # --- SỬA LỖI Ô VUÔNG TIẾNG VIỆT ---
-        self.font = pygame.font.SysFont('arial', 24, bold=True)
-        self.title_font = pygame.font.SysFont('arial', 32, bold=True)
+        # --- FONT PIXEL ---
+        _font_path = os.path.join("media", "font", "RobotikaPixelGreek-nAWJR.otf")
+        self.font = pygame.font.Font(_font_path, 24)
+        self.title_font = pygame.font.Font(_font_path, 32)
         
         # =========================================================================
         # --- 3. ĐỒNG BỘ VISUAL (THẨM MỸ) VÀ LOGIC (BẮT ĐẦU SỬA Ở ĐÂY) ---
@@ -257,7 +258,8 @@ class Fighter:
         self.PLAYER_MAX_HP     = cfg["hp"]
         self.GAME_DURATION_SEC = cfg["duration"]
         fs = max(14, self.w // 22)
-        self.font = pygame.font.SysFont("monospace", fs, bold=True)
+        _font_path = os.path.join("media", "font", "RobotikaPixelGreek-nAWJR.otf")
+        self.font = pygame.font.Font(_font_path, fs)
 
         self.tile_w   = self.w // self.BOARD_COLS
         self.tile_h   = self.h // self.BOARD_ROWS
@@ -893,8 +895,9 @@ class Minesweeper:
         self.oy   = (self.h - grid_h) // 2
 
         fs = max(10, self.cell * 11 // 16)
-        self.font      = pygame.font.SysFont("monospace", fs, bold=True)
-        self.font_big  = pygame.font.SysFont("monospace", max(16, self.w // 12), bold=True)
+        _font_path = os.path.join("media", "font", "RobotikaPixelGreek-nAWJR.otf")
+        self.font      = pygame.font.Font(_font_path, fs)
+        self.font_big  = pygame.font.Font(_font_path, max(16, self.w // 12))
 
         self.board = Board(self.rows, self.cols, self.total_mines, lives=0)
         self.first_click = True
@@ -1061,7 +1064,14 @@ class SlotMachine:
         self.speed = 1000.0 # pixels per second
         self.offset = 0.0
 
-        self.font = pygame.font.SysFont("monospace", max(24, self.item_height // 3), bold=True)
+        _font_path = os.path.join("media", "font", "RobotikaPixelGreek-nAWJR.otf")
+        self.font = pygame.font.Font(_font_path, max(24, self.item_height // 3))
+        self._inst_font = pygame.font.Font(_font_path, max(18, self.w // 20))
+        try:
+            self.bg_img = pygame.image.load(os.path.join("media", "images", "ui", "backgroundA.png")).convert()
+            self.bg_img = pygame.transform.scale(self.bg_img, (self.w, self.h))
+        except Exception:
+            self.bg_img = None
         self.result = None
 
     def run(self) -> str:
@@ -1122,7 +1132,10 @@ class SlotMachine:
         return target_offset
 
     def draw(self, stopped: bool) -> None:
-        self.surf.fill((20, 20, 30))
+        if self.bg_img:
+            self.surf.blit(self.bg_img, (0, 0))
+        else:
+            self.surf.fill((20, 20, 30))
 
         cx, cy = self.w // 2, self.h // 2
         box_w, box_h = max(240, self.w // 2), self.item_height
@@ -1152,5 +1165,5 @@ class SlotMachine:
         self.surf.blit(clip_surf, (cx - box_w // 2, cy - box_h // 2))
 
         if not stopped:
-            inst = pygame.font.SysFont("monospace", max(18, self.w // 20), bold=True).render("Now is the time...", True, (255, 255, 255))
+            inst = self._inst_font.render("Now is the time...", True, (255, 255, 255))
             self.surf.blit(inst, (cx - inst.get_width()//2, cy + box_h // 2 + 20))
