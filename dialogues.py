@@ -78,5 +78,5 @@ DIALOG_LINES = {
 
 ABOUT_TEXT = (
     "MATCH3PY",
-    "AUTHOR: TOMAS GONZALEZ ARAGON"
+    "Based on Tomas Gonzalez Aragon's MATCH3PY project.\nInspired by QuickTurtle's LIFE CRUSH STORY.\nTeam member:\n-Trinh Nguyen Cat Tuong (25522036)\n-Nguyen Khanh Van (25522051)\n-Do Hai Yen (25522133)"
 )

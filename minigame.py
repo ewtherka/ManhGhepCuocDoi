@@ -1057,7 +1057,7 @@ class SlotMachine:
         self.w = surf.get_width()
         self.h = surf.get_height()
 
-        self.items = [ "FAILED", "copper", "FAILED", "FAILED", "gold", "FAILED", "copper", "FAILED" ]
+        self.items = ["FAILED"] * 17 + ["copper"] * 2 + ["gold"] * 1
         random.shuffle(self.items)
 
         self.item_height = max(80, self.h // 3)

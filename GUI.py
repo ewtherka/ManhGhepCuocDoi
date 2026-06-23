@@ -552,7 +552,7 @@ class mainGUI(Match3GUI):
         self.board_surf=self.sidebar_surf
         for row_y, btype, count in (
             (hobby_top,  mainBoard.HOBBY,  self.hobby_count%20),
-            (chance_top, mainBoard.CHANCE, self.chance_count%25),
+            (chance_top, mainBoard.CHANCE, self.chance_count%30),
         ):
             icon_cx=pad+icon_r
             icon_cy=row_y+ind_h//2
@@ -566,7 +566,7 @@ class mainGUI(Match3GUI):
                 self.sidebar_surf.blit(fr, (icon_cx-fnw//2, icon_cy-fnh//2))
             self.draw_tile(icon_cx, icon_cy, btype, icon_r)
             #count/limit label: shows progress within the current tier (mod resets at tier boundary)
-            limit=20 if btype==mainBoard.HOBBY else 25
+            limit=20 if btype==mainBoard.HOBBY else 30
             feff=self.font_dialog_large or self.font
             lbl=feff.render(f"{count} / {limit}", True, (138,69,51))
             lbl_w,lbl_h=lbl.get_size()
@@ -712,13 +712,24 @@ class mainGUI(Match3GUI):
 
     def draw_about(self):
         self.game_surf.fill(self.background_color["game"])
-        y=(self.game_surf.get_height()-(self.char_height+self.char_sep_height)*10)/2
+        lines = []
+        max_width = 0
         for text in ABOUT_TEXT:
-            width=len(text)*self.char_width
-            x=(self.game_surf.get_width()-width)/2
-            label=self.font.render(text, True, self.widget_text_color)
-            self.game_surf.blit(label, (x, y))
-            y+=(self.char_height+self.char_sep_height)*4
+            for line in text.split('\n'):
+                lines.append(line)
+                width = self.font.size(line)[0]
+                if width > max_width:
+                    max_width = width
+            lines.append("")
+        total_height = len(lines) * (self.char_height + self.char_sep_height) * 1.5
+        y = (self.game_surf.get_height() - total_height) / 2
+        base_x = (self.game_surf.get_width() - max_width) / 2
+        for text in ABOUT_TEXT:
+            for line in text.split('\n'):
+                label = self.font.render(line, True, self.widget_text_color)
+                self.game_surf.blit(label, (base_x, y))
+                y += (self.char_height + self.char_sep_height) * 1.5
+            y += (self.char_height + self.char_sep_height) * 1.5
         self.draw_buttons(("BACK",), y, 0, "game")
 
     def draw_screen(self):
@@ -1079,7 +1090,7 @@ class mainGUI(Match3GUI):
             if self.hobby_count>=50:
                 self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_type],
                                           icons=[self._hobby_dialog_icon()])
-            elif self.chance_count>=40:
+            elif self.chance_count>=48:
                 self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.chance_type],
                                           icons=[self._chance_dialog_icon()])
             else:
@@ -1175,7 +1186,7 @@ class mainGUI(Match3GUI):
             self.hobby_count=max(self.hobby_count-5, floor)
             self.update_sidebar()
         elif event=="brute":
-            floor=(self.chance_count//25)*25
+            floor=(self.chance_count//30)*30
             self.chance_count=max(self.chance_count-5, floor)
             self.update_sidebar()
 
@@ -1231,7 +1242,7 @@ class mainGUI(Match3GUI):
         if self.hobby_state>=2 and self.hobby_count>=60:
             self.hobby_count=60
             self.minigame()
-        new_chance=min(self.chance_count//25, 1)
+        new_chance=min(self.chance_count//30, 1)
         if new_chance>self.chance_state:
             if new_chance==1 and self.chance_type is None:
                 self.chance_type=random.randint(0, 2)
@@ -1239,7 +1250,7 @@ class mainGUI(Match3GUI):
             if self.chance_state==1 and self.chance_type is not None:
                 self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type],
                                           icons=[self._chance_dialog_icon()])
-        if self.chance_count>=50 and self.random_wheel_result is None:
+        if self.chance_count>=60 and self.random_wheel_result is None:
             # Chạy minigame SlotMachine thay vì random tự động
             result_spin = minigame.SlotMachine(self.board_surf, self.clock).run()
             self.random_wheel_result = result_spin if result_spin != "FAILED" else None
