@@ -1251,18 +1251,14 @@ class mainGUI(Match3GUI):
                 self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type],
                                           icons=[self._chance_dialog_icon()])
         if self.chance_count>=60 and self.random_wheel_result is None:
-            # Chạy minigame SlotMachine thay vì random tự động
             result_spin = minigame.SlotMachine(self.board_surf, self.clock).run()
             self.random_wheel_result = result_spin if result_spin != "FAILED" else None
             
             if self.random_wheel_result is not None:
                 self.endings(1)
             else:
-                # Nếu lặp lại "FAILED", thì đưa chance count về ngưỡng trước hoặc cho chơi tiếp
-                # Trong trường hợp này, chúng ta reset chance và yêu cầu người chơi kiếm lại điểm chance
-                self.chance_count = 0
-                self.chance_state = 0
-                self.chance_type = None
+                #đã fix: nếu thua thì đưa về lại đầu state 1;
+                self.chance_count = 30
 
     ###EVENT PROCESSING###
 
