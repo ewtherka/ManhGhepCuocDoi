@@ -712,24 +712,26 @@ class mainGUI(Match3GUI):
 
     def draw_about(self):
         self.game_surf.fill(self.background_color["game"])
-        lines = []
-        max_width = 0
+        
+        max_w = self.game_surf.get_width() - 40
+        all_lines = []
+        
         for text in ABOUT_TEXT:
             for line in text.split('\n'):
-                lines.append(line)
-                width = self.font.size(line)[0]
-                if width > max_width:
-                    max_width = width
-            lines.append("")
-        total_height = len(lines) * (self.char_height + self.char_sep_height) * 1.5
+                wrapped = self._wrap_text(line, self.font, max_w)
+                all_lines.extend(wrapped)
+            all_lines.append("")
+            
+        total_height = len(all_lines) * (self.char_height + self.char_sep_height) * 1.5
         y = (self.game_surf.get_height() - total_height) / 2
-        base_x = (self.game_surf.get_width() - max_width) / 2
-        for text in ABOUT_TEXT:
-            for line in text.split('\n'):
+        
+        for line in all_lines:
+            if line:
                 label = self.font.render(line, True, self.widget_text_color)
+                base_x = (self.game_surf.get_width() - label.get_width()) / 2
                 self.game_surf.blit(label, (base_x, y))
-                y += (self.char_height + self.char_sep_height) * 1.5
             y += (self.char_height + self.char_sep_height) * 1.5
+            
         self.draw_buttons(("BACK",), y, 0, "game")
 
     def draw_screen(self):
@@ -894,20 +896,22 @@ class mainGUI(Match3GUI):
         self.char_width=self.min_char_width*gw/self.starting_width
         self.char_height=self.min_char_height*gh/self.starting_height
         self.char_sep_height=self.min_char_sep_height*gh/self.starting_height
-        self.font=pygame.font.SysFont("monospace", int(self.font_size))
-        self.font.set_bold(True)
-        self.font_italic=pygame.font.SysFont("monospace", int(self.font_size))
-        self.font_italic.set_italic(True)
         dialog_size=max(12, int(self.font_size*0.58))
         dialog_size_large=max(16, int(self.font_size*0.76))
         dialog_size_small=max(10, int(self.font_size*0.40))
         _font_path="media/font/RobotikaPixelGreek-nAWJR.otf"
         if os.path.isfile(_font_path):
+            self.font=pygame.font.Font(_font_path, int(self.font_size))
+            self.font_italic=pygame.font.Font(_font_path, int(self.font_size))
             self.font_dialog=pygame.font.Font(_font_path, dialog_size)
             self.font_dialog_italic=pygame.font.Font(_font_path, dialog_size)
             self.font_dialog_large=pygame.font.Font(_font_path, dialog_size_large)
             self.font_dialog_small=pygame.font.Font(_font_path, dialog_size_small)
         else:
+            self.font=pygame.font.SysFont("monospace", int(self.font_size))
+            self.font.set_bold(True)
+            self.font_italic=pygame.font.SysFont("monospace", int(self.font_size))
+            self.font_italic.set_italic(True)
             self.font_dialog=pygame.font.SysFont("segoeui", dialog_size)
             self.font_dialog_italic=pygame.font.SysFont("segoeui", dialog_size)
             self.font_dialog_large=pygame.font.SysFont("segoeui", dialog_size_large)
@@ -1581,8 +1585,12 @@ class mainGUI(Match3GUI):
         self.preferences=data
         pygame.init()
         pygame.mixer.init()
-        self.font=pygame.font.SysFont("monospace", int(self.font_size))
-        self.font.set_bold(True)
+        _font_path="media/font/RobotikaPixelGreek-nAWJR.otf"
+        if os.path.isfile(_font_path):
+            self.font=pygame.font.Font(_font_path, int(self.font_size))
+        else:
+            self.font=pygame.font.SysFont("monospace", int(self.font_size))
+            self.font.set_bold(True)
         self.clock=pygame.time.Clock()
         icon=pygame.image.load("icon32x32.png")
         pygame.display.set_icon(icon)
