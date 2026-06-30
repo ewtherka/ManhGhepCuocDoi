@@ -1,4 +1,4 @@
-from Board import mainBoard
+﻿from Board import mainBoard
 from match3_gui import Match3GUI, GameState, MouseState
 from dialogues import DIALOG_LINES, ABOUT_TEXT
 import json
@@ -64,10 +64,10 @@ class mainGUI(Match3GUI):
     def __init__(self):
         #Board
         self.board=None
-        self.screen_surf=None
-        self.game_surf=None
-        self.board_surf=None
-        self.sidebar_surf=None
+        self.screen_surf=None#canvas màn
+        self.game_surf=None#canvas game chung
+        self.board_surf=None#canvas game board
+        self.sidebar_surf=None#canvas side board
         self.clock=None
         self.circle_radius=0
         self._icon_cache={}
@@ -213,49 +213,37 @@ class mainGUI(Match3GUI):
                 scaled=pygame.transform.scale(icon, (diameter, diameter))
             self.board_surf.blit(scaled, (x-diameter//2, y-diameter//2))
             return
-        #fallback màu khi chưa load được icon — tránh ô trống
-        fallback={
-            B.TIME:        (100,160,220),
-            B.HOBBY:       (100,200,120),
-            B.CHANCE:      (220,100,100),
-            B.FATE:        (200,160,60),
-            B.BOOST_TIME:  (60,120,200),
-            B.BOOST_HOBBY: (60,160,80),
-            B.BOOST_CHANCE:(200,60,60),
-        }
-        color=fallback.get(color_index, (128,128,128))
-        if color_index in (B.BOOST_TIME, B.BOOST_HOBBY, B.BOOST_CHANCE):
-            self.draw_parallelogram(x, y, color, size)
-        else:
-            self.draw_rounded_square(x, y, color, size)
+        
+    
 
     def _draw_button(self, x, y_abs, width, height, text, name, callback, btn_img=None, text_y_offset=0):
-        fd=self.font_dialog or self.font
+
+        fd=self.font_dialog
         bx,by=int(x),int(y_abs)
         bw,bh=int(width),int(height)
-        #ưu tiên btn_img truyền vào, fallback về button_img chung
+        
         src=btn_img or self.button_img
         if src is not None:
-            #scale PNG vừa khung, giữ tỉ lệ, căn giữa trong slot
             ow,oh=src.get_size()
+            #tìm ratio để scale (gpt gợi ý)
             scale=min(bw/ow, bh/oh)
             nw,nh=int(ow*scale),int(oh*scale)
             bx+=(bw-nw)//2
             by+=(bh-nh)//2
             bw,bh=nw,nh
+            #tạo rect pygame
             rect=pygame.Rect(bx, by, bw, bh)
             img=pygame.transform.smoothscale(src, (bw, bh))
             self.screen_surf.blit(img, (bx, by))
         else:
-            #không có ảnh: vẽ hình chữ nhật xám bo góc
             rect=pygame.Rect(bx, by, bw, bh)
             pygame.draw.rect(self.screen_surf, (64,64,64), rect, border_radius=4)
-        #căn giữa nhãn chữ lên rect, cho phép dịch dọc qua text_y_offset
+        
         if text and fd:
             lbl=fd.render(text, True, self.widget_text_color)
             self.screen_surf.blit(lbl, (rect.x+(rect.w-lbl.get_width())//2,
                                         rect.y+(rect.h-lbl.get_height())//2+text_y_offset))
-        #lưu rect+callback để process_events nhận click
+        #tạo button rect chứa tham chiếu hàm và rect
         self.button_rects[name]=(rect, callback)
 
     ###DIALOGUE METHODS###
@@ -264,24 +252,26 @@ class mainGUI(Match3GUI):
         words=text.split()
         lines=[]
         current=""
-        #ghép từ vào dòng hiện tại cho đến khi vượt max_w thì xuống dòng mới
         for word in words:
+            #thêm thử vào test
             test=current+" "+word if current else word
             if font.size(test)[0]<=max_w:
+                #nếu <= thì cho vào 1 hàng current
                 current=test
             else:
+                #nếu > thì ngắt và bỏ current (chưa thêm word) vào 1 hàng
                 if current:
                     lines.append(current)
-                current=word
+                current=word#lấy phần thừa cho vào dòng mới (hiện tại)
         if current:
             lines.append(current)
         return lines if lines else [""]
 
     def _hobby_dialog_icon(self):
-        #chưa biết type: trả về icon chung chưa lộ
+        #chưa biết type: trả về icon chung
         if self.hobby_type is None:
             return self.hobby_icon_s0
-        #thử boost icon ở state hiện tại, lùi dần về state thấp nếu thiếu
+        
         idx=min(max(self.hobby_state, 0), 3) #KVan sua
         for i in range(idx, -1, -1): #KVan sua
             ic=self.hobby_boost_icons[self.hobby_type][i]
@@ -290,7 +280,6 @@ class mainGUI(Match3GUI):
         return self.hobby_icon_s0
 
     def _chance_dialog_icon(self):
-        #chưa biết type: trả về icon chung chưa lộ
         if self.chance_type is None:
             return self.chance_icon_s0
         #ưu tiên: boost theo type → icon theo type → boost chung → icon chung
@@ -444,47 +433,13 @@ class mainGUI(Match3GUI):
 
     ###DRAW METHODS###
 
-    def draw_rounded_square(self, x, y, color, size=None):
-        #hình fallback cho block TIME khi chưa load được icon
-        if size is None:
-            size=self.circle_radius
-        diameter=int(size*self.circle_scale*2)
-        if diameter<2:
-            return
-        half=diameter//2
-        border_radius=max(3, diameter//4)
-        rect=pygame.Rect(x-half, y-half, diameter, diameter)
-        pygame.draw.rect(self.board_surf, color, rect, border_radius=border_radius)
-        #viền tối khớp màu nền board
-        pygame.draw.rect(self.board_surf, (31,39,72), rect, width=2, border_radius=border_radius)
-
-    def draw_parallelogram(self, x, y, color, size=None):
-        #hình fallback cho block BOOST (nghiêng để phân biệt với ô thường)
-        if size is None:
-            size=self.circle_radius
-        s=size*self.circle_scale
-        if s<2:
-            return
-        hw=max(2, int(s*0.28))
-        hh=max(2, int(s*0.72))
-        sk=max(1, int(s*0.22))
-        pts=[
-            (x-hw+sk, y-hh),
-            (x+hw+sk, y-hh),
-            (x+hw-sk, y+hh),
-            (x-hw-sk, y+hh),
-        ]
-        pygame.draw.polygon(self.board_surf, color, pts)
-        #viền sáng hơn dọc các cạnh tạo cảm giác nổi 3D
-        highlight=tuple(min(255, c+60) for c in color)
-        pygame.draw.polygon(self.board_surf, highlight, pts, 2)
 
     def draw_board(self, no_draw_pts=None):
         #lấp nửa trái bằng ảnh nền hoặc màu board đặc
         if self.board_area_bg_scaled is not None:
-            self.game_surf.blit(self.board_area_bg_scaled, (0, 0))
+            self.game_surf.blit(self.board_area_bg_scaled, (0, 0))#bỏ background cho game board vào
         else:
-            self.board_surf.fill(self.background_color["board"])
+            self.board_surf.fill(self.background_color["board"])#fallback fill solid color
         #vẽ từng ô có nội dung; bỏ qua no_draw_pts (animation tự vẽ riêng các ô đó)
         for row in range(self.board.rows):
             for col in range(self.board.cols):
@@ -497,50 +452,60 @@ class mainGUI(Match3GUI):
                 self.draw_tile(pos[0], pos[1], color_index)
 
     def draw_buttons(self, texts, y, y_separation, surface_name):
-        #size each button to fit its label text plus padding
+        #lấy canvas hiện tại
         surface=getattr(self, f"{surface_name}_surf")
+
+        #chiều cao mặc định 3.5 unit
         height=(self.char_height+self.char_sep_height)*3.5
+
         for text in texts:
             width=(len(text)+10)*self.char_width
-            #center the button horizontally in the given surface
+            #canh giua theo absolute coord
             x=(surface.get_width()-width)/2+surface.get_abs_offset()[0]
             y_abs=y+surface.get_abs_offset()[1]
-            #derive callback name from button text ("NEW GAME" → new_game_clicked)
+            
             button_name=text.lower().replace(' ', '_')
             self._draw_button(x, y_abs, width, height, text,
                               button_name, getattr(self, f"{button_name}_clicked"),
                               btn_img=self.menu_button_img,
                               text_y_offset=int(height*0.08))
+            
+            #move cursor
             y+=height+(self.char_height+self.char_sep_height)*y_separation
 
     def draw_sidebar(self):
-        #fill right panel with background image or solid color
+        
         if self.board_bg_scaled is not None:
             self.sidebar_surf.blit(self.board_bg_scaled, (0, 0))
         else:
             self.sidebar_surf.fill(self.background_color["sidebar"])
         sw=self.sidebar_surf.get_width()
         sh=self.sidebar_surf.get_height()
+        #lay abs coord va unit
         sx_off=self.sidebar_surf.get_abs_offset()[0]
         sy_off=self.sidebar_surf.get_abs_offset()[1]
         unit=self.char_height+self.char_sep_height
+        #set dynamic padding = 7% sidebar hoac 4
         pad=max(4, int(sw*0.07))
 
-        #PAUSE + HINT buttons at the bottom of the sidebar
+        #Ve nut
         btn_h=int(unit*3.5)
         btn_w=(sw-pad*3)//2
+
         btn_y=sh-int(sh*0.01)-btn_h
+
         icon_map={"pause": self.pause_img, "hint": self.hint_img}
         for i, (bname, btext) in enumerate((("pause","PAUSE"),("hint","HINT"))):
-            bx=pad+i*(btn_w+pad)
+            bx=pad+i*(btn_w+pad)#tu dong dich qua
             icon=icon_map[bname] or self.board_button_img
+            #fallback neu lo thieu icon
             label=btext if icon_map[bname] is None else ""
             self._draw_button(int(bx+sx_off), int(btn_y+sy_off),
                               int(btn_w), int(btn_h), label,
                               bname, getattr(self, f"{bname}_clicked"),
                               btn_img=icon)
 
-        #HOBBY and CHANCE progress indicators (icon + count/limit label)
+        #ve indicatỏ
         icon_r=max(4, int(unit*0.75))
         ind_h=icon_r*2
         gap=max(2, int(unit*0.35))
@@ -658,24 +623,30 @@ class mainGUI(Match3GUI):
     def draw_main_menu(self):
         self.game_surf.fill(self.background_color["game"])
         texts=["NEW GAME","PREFERENCES","ABOUT","EXIT"]
+
         if self.game_state==GameState.PAUSED:
             texts=["RESUME GAME"]+texts
-        unit=self.char_height+self.char_sep_height
-        btn_h=unit*3.5
-        sep=unit*1.0
-        total=len(texts)*btn_h+(len(texts)-1)*sep
+
+        unit=self.char_height+self.char_sep_height#lấy height chữ và gap làm mốc
+        btn_h=unit*3.5#chiều cao của nút
+        sep=unit*1.0#khoảng cách giữa 2 nút
+        total=len(texts)*btn_h+(len(texts)-1)*sep#tổng height ủa các nút
         y=(self.game_surf.get_height()-total)/2
         self.draw_buttons(texts, y, 1.0, "game")
 
     def draw_ended(self):
         self.game_surf.fill(self.background_color["game"])
-        y=(self.game_surf.get_height()-(self.char_height+self.char_sep_height)*6)/2
+
+        y=(self.game_surf.get_height()-(self.char_height+self.char_sep_height)*6)/2#canh giữa, gap 1.5, continue 3.5 còn game over 1
+        
         text="GAME OVER"
-        width=len(text)*self.char_width
+        width=len(text)*self.char_width#căn giữa trục x
         x=(self.game_surf.get_width()-width)/2
-        label=self.font.render(text, True, self.widget_text_color)
+
+        label=self.font.render(text, True, self.widget_text_color)#chuyển sang img r blit vào
         self.game_surf.blit(label, (x, y))
-        y+=(self.char_height+self.char_sep_height)*4
+
+        y+=(self.char_height+self.char_sep_height)*4#dịch xuống để vẽ btn
         self.draw_buttons(("CONTINUE",), y, 0, "game")
 
     def draw_preferences(self):
@@ -735,17 +706,28 @@ class mainGUI(Match3GUI):
         self.draw_buttons(("BACK",), y, 0, "game")
 
     def draw_screen(self):
+        #clear toàn bộ trước khi vẽ
         self.screen_surf.fill(self.background_color["screen"])
+
+        #nếu đang trong game
         if self.game_state==GameState.RUNNING:
             self.game_surf.fill(self.background_color["game"])
             self.draw_board()
             self.draw_sidebar()
+
+        #nếu đang ở menu
         elif self.game_state in (GameState.MAINMENU, GameState.PAUSED):
             self.draw_main_menu()
+
+        #nếu tạch
         elif self.game_state==GameState.ENDED:
             self.draw_ended()
+
+        #nếu chọn pref
         elif self.game_state==GameState.PREFERENCES:
             self.draw_preferences()
+
+        #nếu chọn abt
         elif self.game_state==GameState.ABOUT:
             self.draw_about()
 
@@ -878,20 +860,29 @@ class mainGUI(Match3GUI):
     ###RESIZE###
 
     def resize_surfaces(self):
-        sw,sh=self.screen_surf.get_size()
+        sw,sh=self.screen_surf.get_size()#lấy size của canvas màn
         gw,gh=sw,sh
-        self.game_surf=self.screen_surf.subsurface((0, 0, gw, gh))
-        left_w=int(gw*0.6)
-        board_side=min(left_w, gh)
-        board_top=(gh-board_side)//2
-        self.board_surf=self.game_surf.subsurface((0, board_top, board_side, board_side))
+
+        self.game_surf=self.screen_surf.subsurface((0, 0, gw, gh))#canvas game = canvas màn
+
+        left_w=int(gw*0.6)#lấy 60%
+        board_side=min(left_w, gh)#lấy min để tạo thành hình vuông
+        board_top=(gh-board_side)//2#lấy margin trên dưới
+
+        self.board_surf=self.game_surf.subsurface((0, board_top, board_side, board_side))#vẽ từ 0->board size và từ top -> boardsize cho canvas board
+
         if self.board is not None:
-            self.circle_radius=board_side/(self.board.cols*2)
-        self.sidebar_surf=self.game_surf.subsurface((left_w, 0, gw-left_w, gh))
+            self.circle_radius=board_side/(self.board.cols*2)#bán kính = (boardsize/số cột(hàng))/2
+
+        self.sidebar_surf=self.game_surf.subsurface((left_w, 0, gw-left_w, gh))#canvas sideboard từ left->hết và 0->hết
+
         if self.board_bg is not None:
-            self.board_bg_scaled=pygame.transform.smoothscale(self.board_bg, (gw-left_w, gh))
+            self.board_bg_scaled=pygame.transform.smoothscale(self.board_bg, (gw-left_w, gh))#actually board bg là của sizebar...
+
         if self.board_area_bg is not None:
             self.board_area_bg_scaled=pygame.transform.smoothscale(self.board_area_bg, (left_w, gh))
+
+        #scale font
         self.font_size=self.min_font_size*gw/self.starting_width
         self.char_width=self.min_char_width*gw/self.starting_width
         self.char_height=self.min_char_height*gh/self.starting_height
@@ -907,6 +898,7 @@ class mainGUI(Match3GUI):
             self.font_dialog_italic=pygame.font.Font(_font_path, dialog_size)
             self.font_dialog_large=pygame.font.Font(_font_path, dialog_size_large)
             self.font_dialog_small=pygame.font.Font(_font_path, dialog_size_small)
+        #nếu k có font trong folder thì fallback
         else:
             self.font=pygame.font.SysFont("monospace", int(self.font_size))
             self.font.set_bold(True)
