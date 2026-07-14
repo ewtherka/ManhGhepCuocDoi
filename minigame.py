@@ -220,14 +220,14 @@ class Fighter:
     TEXT_COLOR     = (255, 255, 255)
 
     _DIFFICULTY_SETTINGS = {
-        0: dict(enemy_speed_min=30,  enemy_speed_max=70,  spawn_ms=1200, hp=3, duration=45),
-        1: dict(enemy_speed_min=20,  enemy_speed_max=42,  spawn_ms=1800, hp=5, duration=30),
+        0: dict(enemy_speed_min=50,  enemy_speed_max=120,  spawn_ms=1000, hp=3, duration=30),
+        1: dict(enemy_speed_min=20,  enemy_speed_max=42,  spawn_ms=1800, hp=5, duration=20),
     }
 
     PLAYER_SPEED       = 220
     ATTACK_COOLDOWN_MS = 300
     ATTACK_FLASH_MS    = 150
-    ATTACK_WINDUP_SEC  = 0.5   # thời gian chờ trước khi enemy tấn công
+    ATTACK_WINDUP_SEC  = 0.2   # thời gian chờ trước khi enemy tấn công
     PLAYER_RADIUS      = 14
     ENEMY_RADIUS       = 14          # fallback when sprites not loaded
     MELEE_RADIUS       = int(PLAYER_RADIUS * 1.5)   # = 21
@@ -853,8 +853,8 @@ class Minesweeper:
     """
 
     _DIFFICULTY = {
-        0: dict(cols=6, rows=6, mines=6),   # ~20-35s để thắng
-        1: dict(cols=5, rows=5, mines=4),   # ~15-25s để thắng (retry)
+        0: dict(cols=8, rows=8, mines=10),
+        1: dict(cols=8, rows=8, mines=6),  
     }
 
     BG_COLOR      = (20,  20,  25)
