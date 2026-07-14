@@ -10,11 +10,12 @@ class mainBoard(Match3Board):
     BOOST_TIME = 5
     BOOST_HOBBY = 6
     BOOST_CHANCE = 7
+    
     # Chuyển ID từ boost về base và ngược lại
     BASE = {5:0,6:1,7:2}
     BOOST = {0:5,1:6,2:7}
 
-    def __init__(self, cols = 6, rows = 6, num_values = 3):
+    def __init__(self, cols = 9, rows = 9, num_values = 3):
         '''
         Khởi tạo bảng game, kế thừa từ hàm gốc ở match3_board.
         '''
@@ -63,6 +64,9 @@ class mainBoard(Match3Board):
         '''
         Tìm các cụm block liền kề nhau.
         '''
+        if self.board[row][col] == self.FATE:
+            return group if group is not None else []
+        
         if group is None:
             group = list()
         
@@ -89,14 +93,15 @@ class mainBoard(Match3Board):
         '''
         for row in range(self.rows):
             for col in range(self.cols):
-                if self._get_block_type(self.board[row][col]) == self.FATE: 
-                    continue
 
+                if self.board[row][col] == self.FATE:
+                    return (((col, row), (col, row)), [])
+                
                 for (x, y) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     neigh_x = col + x
                     neigh_y = row + y
 
-                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[neigh_y][neigh_x] == self.FATE:
+                    if self.out_of_bounds(neigh_x, neigh_y):
                         continue
 
                     if self._get_block_type(self.board[row][col]) == self._get_block_type(self.board[neigh_y][neigh_x]):
@@ -127,14 +132,12 @@ class mainBoard(Match3Board):
 
         for row in range(self.rows):
             for col in range(self.cols):
-                if self._get_block_type(self.board[row][col]) == self.FATE:
-                    continue
                 
                 for (x, y) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     neigh_x = col + x
                     neigh_y = row + y
                     
-                    if self.out_of_bounds(neigh_x, neigh_y) or self.board[neigh_y][neigh_x] == self.FATE:
+                    if self.out_of_bounds(neigh_x, neigh_y):
                         continue
                     
                     if self._get_block_type(self.board[row][col]) == self._get_block_type(self.board[neigh_y][neigh_x]):
@@ -157,3 +160,4 @@ class mainBoard(Match3Board):
                         best_score = score
                         best_play = (swap_points, groups)
         return best_play
+    
