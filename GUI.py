@@ -339,11 +339,11 @@ class mainGUI(Match3GUI):
 
         #vẽ một dòng văn bản tại vị trí ty hiện tại rồi tăng ty
         def blit_line(font, text, color, line_h=None, x_center=True, x_right=None):
-            nonlocal ty
+            nonlocal ty #truy cập vào ty ở hàm ngoài
             lbl=font.render(text, True, color)
-            if x_right is not None:
+            if x_right is not None:#nếu căn lề phải
                 self.game_surf.blit(lbl, (x_right-lbl.get_width(), ty))
-            elif x_center:
+            elif x_center:#nếu căn giữa
                 self.game_surf.blit(lbl, (cx-lbl.get_width()//2, ty))
             ty+=(line_h or lh)
 
@@ -1362,15 +1362,9 @@ class mainGUI(Match3GUI):
     ###MAIN LOOP###
 
     def running(self):
-        groups=self.board.get_valid_groups()
-        cascade_from_new=0
-        populated_set=set()
+        groups=self.board.get_valid_groups()#kiểm tra và lấy ra các group  đã match
+        populated_set=set()#khởi tạo set để lưu tọa độ các block sắp populate
         while len(groups)>0:
-            #chi tang cascade_from_new khi group chua block moi duoc populate
-            if populated_set and any(p in populated_set for g in groups for p in g):
-                cascade_from_new+=1
-                if cascade_from_new>2:
-                    break
             points=[point for group in groups for point in group]
             time_raw,hobby_raw,chance_raw=0,0,0
             has_boost_time=has_boost_hobby=has_boost_chance=False
