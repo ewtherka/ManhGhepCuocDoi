@@ -148,7 +148,7 @@ class mainGUI(Match3GUI):
 
 
     ###DRAWING METHODS###
-    def draw_tile(self, x, y, color_index, size=None):
+    def draw_tile(self, x, y, color_index, size=None, ice_hp=0):
         B=mainBoard
         #mặc định dùng circle_radius khi không đang animate
         if size is None:
@@ -210,6 +210,25 @@ class mainGUI(Match3GUI):
             else:
                 scaled=pygame.transform.scale(icon, (diameter, diameter))
             self.board_surf.blit(scaled, (x-diameter//2, y-diameter//2))
+
+            # Vẽ khối băng
+            if ice_hp > 0:
+                ice_scale = 1.06 
+                ice_diameter = int(diameter * ice_scale)
+                
+                ice_surf = pygame.Surface((ice_diameter, ice_diameter), pygame.SRCALPHA)
+                ice_color = (0, 206, 209, 220)
+                
+                if ice_hp == 2:
+                    pygame.draw.rect(ice_surf, ice_color, ice_surf.get_rect(), border_radius=8)
+                    pygame.draw.rect(ice_surf, (255, 255, 255, 100), ice_surf.get_rect(), width=2, border_radius=8)
+                
+                elif ice_hp == 1:
+                    half_rect = pygame.Rect(0, ice_diameter // 2, ice_diameter, ice_diameter // 2)
+                    pygame.draw.rect(ice_surf, ice_color, half_rect, border_bottom_left_radius=8, border_bottom_right_radius=8)
+                    pygame.draw.rect(ice_surf, (255, 255, 255, 100), half_rect, width=2, border_bottom_left_radius=8, border_bottom_right_radius=8)
+                    
+                self.board_surf.blit(ice_surf, (x - ice_diameter // 2, y - ice_diameter // 2))
             return
         
     
@@ -452,7 +471,8 @@ class mainGUI(Match3GUI):
                 if color_index<0:
                     continue
                 pos=self.board_pos_to_win_pos(col, row)
-                self.draw_tile(pos[0], pos[1], color_index)
+                ice_hp = self.board.ice_board[row][col] if hasattr(self.board, 'ice_board') else 0
+                self.draw_tile(pos[0], pos[1], color_index, ice_hp=ice_hp)
 
     def draw_buttons(self, texts, y, y_separation, surface_name):
         #lấy canvas hiện tại
@@ -958,7 +978,8 @@ class mainGUI(Match3GUI):
                 color_index=self.board.board[board_points[p_i][1]][board_points[p_i][0]]
                 if color_index<0:
                     continue
-                self.draw_tile(curr_pos[p_i][0], curr_pos[p_i][1], color_index)
+                ice_hp = self.board.ice_board[board_points[p_i][1]][board_points[p_i][0]] if hasattr(self.board, 'ice_board') else 0
+                self.draw_tile(curr_pos[p_i][0], curr_pos[p_i][1], color_index, ice_hp=ice_hp)
             pygame.display.flip()
 
     def animate_clear(self, board_points, no_more_moves=False):
@@ -987,7 +1008,8 @@ class mainGUI(Match3GUI):
                 color_index=self.board.board[p[1]][p[0]]
                 if color_index<0:
                     continue
-                self.draw_tile(win_points[i][0], win_points[i][1], color_index, curr_size)
+                ice_hp = self.board.ice_board[p[1]][p[0]] if hasattr(self.board, 'ice_board') else 0
+                self.draw_tile(win_points[i][0], win_points[i][1], color_index, size=curr_size, ice_hp=ice_hp)
             if no_more_moves:
                 texts=("NO MORE MOVES","REGENERATING BOARD")
                 width=(max([len(t) for t in texts])+4)*self.char_width
@@ -1023,7 +1045,7 @@ class mainGUI(Match3GUI):
                 self.draw_sidebar()
                 win_points_dst=[list(self.board_pos_to_win_pos(*p)) for p in board_points_dst]
                 win_points_src=[list(self.board_pos_to_win_pos(*p)) for p in board_points_src]
-            self.draw_board(no_draw_pts=board_points_src+board_points_dst)
+            self.draw_board(no_draw_pts=board_points_dst)
             curr_ani_time=pygame.time.get_ticks()-ani_time_start
             for p_i in range(len(curr_pos)):
                 src_pos=win_points_src[p_i]
@@ -1039,7 +1061,10 @@ class mainGUI(Match3GUI):
                 color_index=color_indices[p_i]
                 if color_index<0:
                     continue
-                self.draw_tile(curr_pos[p_i][0], curr_pos[p_i][1], color_index)
+
+                dst_x, dst_y = board_points_dst[p_i]
+                ice_hp = self.board.ice_board[dst_y][dst_x] if hasattr(self.board, 'ice_board') else 0
+                self.draw_tile(curr_pos[p_i][0], curr_pos[p_i][1], color_index, ice_hp=ice_hp)
             pygame.display.flip()
 
     def animate_hint(self, board_point1, board_point2):
@@ -1111,36 +1136,25 @@ class mainGUI(Match3GUI):
         fate_pt=[(sx, sy)]
         self.animate_clear(fate_pt)
         self.board.clear(fate_pt)
-        pre_shift_cols={}
-        for y in range(self.board.rows):
-            for x in range(self.board.cols):
-                if self.board.board[y][x]!=self.board.empty:
-                    pre_shift_cols.setdefault(x, []).append(y)
+        
         while True:
-            shifted=self.board.shift_down()
-            real=[(x,y) for (x,y) in shifted if self.board.board[y][x]!=self.board.empty]
-            if not real:
-                break
-        anim_dst,anim_src=[],[]
-        for x,pre_rows in pre_shift_cols.items():
-            post_rows=[y for y in range(self.board.rows) if self.board.board[y][x]!=self.board.empty]
-            for i in range(len(pre_rows)):
-                if pre_rows[i]!=post_rows[i]:
-                    anim_src.append((x, pre_rows[i]))
-                    anim_dst.append((x, post_rows[i]))
-        num_empties_col={
-            x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty)
-            for x in range(self.board.cols)
-        }
-        populated=self.board.populate(rows=(0, self.board.rows),
-                                      no_valid_play_check=False,
-                                      no_match3_group_check=True)
-        anim_dst+=populated
-        anim_src+=[(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
-        if anim_dst:
-            self.animate_shift_down(anim_dst, 1, src_pts=anim_src)
-        self.play_sound("drop")
-        self.update_board()
+            movements = self.board.resolve_gravity()
+            anim_dst = list(movements.keys())
+            anim_src = list(movements.values())
+
+            num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
+            populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+            
+            if not movements and not populated: break
+                
+            anim_dst += populated
+            anim_src += [(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
+            
+            if anim_dst:
+                self.animate_shift_down(anim_dst, 1, src_pts=anim_src)
+            self.play_sound("drop")
+            self.update_board()
+
         if event=="seer":
             chance_pts=[(c,r) for r in range(self.board.rows)
                         for c in range(self.board.cols)
@@ -1149,36 +1163,23 @@ class mainGUI(Match3GUI):
                 self.chance_count+=len(chance_pts)
                 self.animate_clear(chance_pts)
                 self.board.clear(chance_pts)
-                pre_shift_cols={}
-                for y in range(self.board.rows):
-                    for x in range(self.board.cols):
-                        if self.board.board[y][x]!=self.board.empty:
-                            pre_shift_cols.setdefault(x, []).append(y)
-                while True:
-                    shifted=self.board.shift_down()
-                    real=[(x,y) for (x,y) in shifted if self.board.board[y][x]!=self.board.empty]
-                    if not real:
-                        break
-                anim_dst,anim_src=[],[]
-                for x,pre_rows in pre_shift_cols.items():
-                    post_rows=[y for y in range(self.board.rows) if self.board.board[y][x]!=self.board.empty]
-                    for i in range(len(pre_rows)):
-                        if pre_rows[i]!=post_rows[i]:
-                            anim_src.append((x, pre_rows[i]))
-                            anim_dst.append((x, post_rows[i]))
-                num_empties_col={
-                    x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty)
-                    for x in range(self.board.cols)
-                }
-                populated=self.board.populate(rows=(0, self.board.rows),
-                                              no_valid_play_check=False,
-                                              no_match3_group_check=True)
-                anim_dst+=populated
-                anim_src+=[(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
+                
+            while True:
+                movements = self.board.resolve_gravity()
+                anim_dst = list(movements.keys())
+                anim_src = list(movements.values())
+
+                num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
+                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+                
+                if not movements and not populated: break
+                    
+                anim_dst += populated
+                anim_src += [(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
+                
                 if anim_dst:
                     self.animate_shift_down(anim_dst, self.get_num_vertical_points(chance_pts), src_pts=anim_src)
                 self.play_sound("drop")
-                self.check_stat_thresholds()
                 self.update_board()
         elif event=="thief":
             floor=(self.hobby_count//20)*20
@@ -1229,6 +1230,18 @@ class mainGUI(Match3GUI):
             if key in self.DIALOG_LINES:
                 self.show_dialog_and_wait(self.DIALOG_LINES[key],
                                           icons=[self.time_icon[0]] if self.time_icon[0] else None)
+            # Tạo băng mỗi khi đổi giai đoạn
+            if hasattr(self.board, 'ice_board'):
+                possible = [(c, r) for r in range(self.board.rows) for c in range(self.board.cols)
+                            if self.board.board[r][c] not in (mainBoard.FATE, self.board.empty) 
+                            and self.board.ice_board[r][c] == 0]
+                
+                num_freeze = min(random.randint(10,15), len(possible))
+                for fx, fy in random.sample(possible, num_freeze):
+                    self.board.ice_board[fy][fx] = 2
+
+            self.update_board()
+
         new_hobby=min(self.hobby_count//20, 2)
         if new_hobby>self.hobby_state and self.hobby_state!=3:
             if new_hobby==1 and self.hobby_type is None:
@@ -1298,6 +1311,13 @@ class mainGUI(Match3GUI):
                     if not swap_valid:
                         self.mouse_state=MouseState.WAITING
                         continue
+                    # ngăn swap khối băng
+                    sx, sy = self.board_pos_src
+                    dx, dy = board_pos_dst
+                    if hasattr(self.board, 'ice_board') and (self.board.ice_board[sy][sx] > 0 or self.board.ice_board[dy][dx] > 0):
+                        self.mouse_state=MouseState.WAITING
+                        continue
+
                     swap_valid=self.board.is_swap_valid(self.board_pos_src, board_pos_dst)
                     self.animate_swap(self.board_pos_src, tuple(board_pos_dst))
                     self.board.swap(self.board_pos_src, board_pos_dst)
@@ -1365,6 +1385,20 @@ class mainGUI(Match3GUI):
         populated_set=set()#khởi tạo set để lưu tọa độ các block sắp populate
         while len(groups)>0:
             points=[point for group in groups for point in group]
+
+            # Giảm HP của băng
+            if hasattr(self.board, 'ice_board'):
+                ice_broken = set()
+                for (cx, cy) in points:
+                    for (dx, dy) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                        nx, ny = cx + dx, cy + dy
+                        if not self.board.out_of_bounds(nx, ny):
+                            if self.board.ice_board[ny][nx] > 0:
+                                ice_broken.add((nx, ny))
+                                
+                for (nx, ny) in ice_broken:
+                    self.board.ice_board[ny][nx] -= 1
+
             time_raw,hobby_raw,chance_raw=0,0,0
             has_boost_time=has_boost_hobby=has_boost_chance=False
             for (cx,cy) in points:
@@ -1393,35 +1427,24 @@ class mainGUI(Match3GUI):
                 sx,sy=pos
                 if not self.board.out_of_bounds(sx, sy) and self.board.board[sy][sx]==self.board.empty:
                     self.board.board[sy][sx]=btype
-            pre_shift_cols={}
-            for y in range(self.board.rows):
-                for x in range(self.board.cols):
-                    if self.board.board[y][x]!=self.board.empty:
-                        pre_shift_cols.setdefault(x, []).append(y)
+            
             while True:
-                shifted=self.board.shift_down()
-                real=[(x,y) for (x,y) in shifted if self.board.board[y][x]!=self.board.empty]
-                if not real:
-                    break
-            anim_dst,anim_src=[],[]
-            for x,pre_rows in pre_shift_cols.items():
-                post_rows=[y for y in range(self.board.rows) if self.board.board[y][x]!=self.board.empty]
-                for i in range(len(pre_rows)):
-                    if pre_rows[i]!=post_rows[i]:
-                        anim_src.append((x, pre_rows[i]))
-                        anim_dst.append((x, post_rows[i]))
-            num_empties_col={
-                x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty)
-                for x in range(self.board.cols)
-            }
-            populated=self.board.populate(rows=(0, self.board.rows),
-                                          no_valid_play_check=False,
-                                          no_match3_group_check=True)
-            anim_dst+=populated
-            anim_src+=[(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
-            if anim_dst:
-                self.animate_shift_down(anim_dst, self.get_num_vertical_points(points), src_pts=anim_src)
-            self.play_sound("drop")
+                movements = self.board.resolve_gravity()
+                anim_dst = list(movements.keys())
+                anim_src = list(movements.values())
+
+                num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
+                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+                
+                if not movements and not populated: break
+                    
+                anim_dst += populated
+                anim_src += [(x, y-num_empties_col.get(x, 1)) for (x, y) in populated]
+                
+                if anim_dst:
+                    self.animate_shift_down(anim_dst, self.get_num_vertical_points(points), src_pts=anim_src)
+                self.play_sound("drop")
+                self.update_board()
             if time_gain>0 and time_pts:
                 self.animate_time_increment(time_gain)
             elif time_gain>0:
@@ -1429,6 +1452,9 @@ class mainGUI(Match3GUI):
             self.check_stat_thresholds(check_time=True)
             if self.game_ended:
                 break
+
+            self.update_board()
+
             populated_set=set(populated)
             groups=self.board.get_valid_groups()
         if getattr(self, 'turn_taken', False): #KVan sua
