@@ -21,11 +21,11 @@ class mainGUI(Match3GUI):
     }
     hint_color = (255, 255, 255)
     widget_text_color = (255, 255, 255)
-    starting_width = 640
+    starting_width = 640#base resolution
     starting_height = 480
     game_ratio = starting_width / starting_height
     board_scale = 9 / 10
-    circle_scale = 18 / 20
+    circle_scale = 18 / 20#scale de khong bi dinh chum
     hint_ani_time = 500
     swap_ani_time = 200
     shift_down_ani_time = 200
@@ -52,8 +52,8 @@ class mainGUI(Match3GUI):
         "additionalProperties": false
     }
     '''
-    preferences_schema = json.loads(preferences_schema)
-    media_dir = "media"
+    preferences_schema = json.loads(preferences_schema)#chuyen string trong file json thanh dict de quan li pref
+    media_dir = "media"#co the doi thanh dir khac neu can
     audio_dir = f"{media_dir}/audio"
     sounds_dir = f"{audio_dir}/sounds"
     music_dir = f"{audio_dir}/music"
@@ -74,7 +74,7 @@ class mainGUI(Match3GUI):
 
         #Input cho chuot
         self.mouse_state=MouseState.WAITING
-        self.board_pos_src=None
+        self.board_pos_src=None#chua coord cua block dau tien click vao
 
         #Widget
         self.active_widgets={}
@@ -120,12 +120,12 @@ class mainGUI(Match3GUI):
 
         #Block icon
         self.hobby_icon_s0=None
-        self.hobby_icons=[[None,None,None],[None,None,None],[None,None,None]]
-        self.hobby_boost_icons=[[None,None,None,None],[None,None,None,None],[None,None,None,None]] #KVan sua
+        self.hobby_icons=[[None,None,None],[None,None,None],[None,None,None]]#3 type 4 state (state 0 o trne roi)
+        self.hobby_boost_icons=[[None,None,None,None],[None,None,None,None],[None,None,None,None]]#3 type 4 state
         self.chance_icon_s0=None
-        self.chance_icons=[None,None,None]
+        self.chance_icons=[None,None,None]#state 1 (3 type)
         self.chance_boost_icon=None
-        self.chance_boost_icons=[None,None,None]
+        self.chance_boost_icons=[None,None,None]#boost cho state 1 (3type)
         self.time_icon=[None,None]
         self.fate_icon=None
 
@@ -136,13 +136,12 @@ class mainGUI(Match3GUI):
         self.board_button_img=None
         self.stat_box_img=None
         self.time_frame_img=None
-        self.hourglass_imgs=[]
         self.hint_img=None
         self.pause_img=None
         self.block_frame_img=None
-        self.board_bg=None
-        self.board_bg_scaled=None
-        self.board_area_bg=None
+        self.sidebar_bg=None#sidebar
+        self.sidebar_bg_scaled=None
+        self.board_area_bg=None#gameboard
         self.board_area_bg_scaled=None
         self.time_imgs=[None]*13
         self.time_plate_img=None
@@ -155,9 +154,9 @@ class mainGUI(Match3GUI):
         #mặc định dùng circle_radius khi không đang animate
         if size is None:
             size=self.circle_radius
-        diameter=int(size*self.circle_scale*2)
+        diameter=int(size*2*self.circle_scale)#diameter thuc te
         icon=None
-        #HOBBY: chọn icon theo type và state hiện tại, lùi về state thấp hơn nếu thiếu
+        #HOBBY: chọn icon theo type và state hiện tại, lùi về state thấp hơn nếu thiếu (fallback)
         if color_index==B.HOBBY:
             if self.hobby_state>0 and self.hobby_type is not None:
                 icon=self.hobby_icons[self.hobby_type][self.hobby_state-1]
@@ -168,14 +167,14 @@ class mainGUI(Match3GUI):
             if icon is None:
                 icon=self.hobby_icon_s0
 
-        #CHANCE: dùng icon theo type khi đã lộ type, ngược lại dùng icon chung
+        #CHANCE: dùng icon theo type khi đã rand type, ngược lại dùng icon chung
         elif color_index==B.CHANCE:
             if self.chance_state>0 and self.chance_type is not None:
                 icon=self.chance_icons[self.chance_type]
             if icon is None:
                 icon=self.chance_icon_s0
 
-        #BOOST_HOBBY: icon boost theo type×state, fallback về ô [0][0] (icon boost chung)
+        #BOOST_HOBBY: icon boost theo type va state, fallback về ô [0][0] (icon boost chung)
         elif color_index==B.BOOST_HOBBY:
             if self.hobby_type is not None and self.hobby_state>0:
                 state_idx=min(self.hobby_state, 3) #KVan sua
@@ -190,7 +189,7 @@ class mainGUI(Match3GUI):
             else:
                 icon=self.chance_boost_icon
 
-        #TIME / BOOST_TIME / FATE: mỗi loại có một icon cố định
+        #TIME/BOOST_TIME/FATE: mỗi loại có một icon cố định
         elif color_index==B.TIME:
             icon=self.time_icon[0]
 
@@ -201,14 +200,14 @@ class mainGUI(Match3GUI):
             icon=self.fate_icon
 
         if icon is not None and diameter>0:
-            full_d=int(self.circle_radius*self.circle_scale*2)
+            full_d=int(self.circle_radius*2*self.circle_scale)#diameter full khi nằm trên ô
             #kích thước đầy đủ: dùng cache để không smoothscale lại mỗi frame
             if diameter==full_d:
-                key=(id(icon), diameter)
+                key=(id(icon), diameter)#mot bo gom dia chi vung nho chua anh va diameter cua anh
                 if key not in self._icon_cache:
                     self._icon_cache[key]=pygame.transform.smoothscale(icon, (diameter, diameter))
                 scaled=self._icon_cache[key]
-            #kích thước thu nhỏ (animation): bỏ qua cache, scale nhanh
+            #kích thước thu nhỏ (animation): bỏ qua cache, scale nhanh (scale nhanh hơn smoothscale)
             else:
                 scaled=pygame.transform.scale(icon, (diameter, diameter))
             self.board_surf.blit(scaled, (x-diameter//2, y-diameter//2))
@@ -216,19 +215,19 @@ class mainGUI(Match3GUI):
         
     
 
-    def _draw_button(self, x, y_abs, width, height, text, name, callback, btn_img=None, text_y_offset=0):
+    def _draw_button(self, x_abs, y_abs, width, height, text, name, callback, btn_img=None, text_y_offset=0):
 
         fd=self.font_dialog
-        bx,by=int(x),int(y_abs)
+        bx,by=int(x_abs),int(y_abs)
         bw,bh=int(width),int(height)
         
         src=btn_img or self.button_img
         if src is not None:
             ow,oh=src.get_size()
-            #tìm ratio để scale (gpt gợi ý)
-            scale=min(bw/ow, bh/oh)
+            #tìm ratio để scale
+            scale=min(bw/ow, bh/oh)#lay ratio min de vua khung
             nw,nh=int(ow*scale),int(oh*scale)
-            bx+=(bw-nw)//2
+            bx+=(bw-nw)//2#cong them padding de canh giua
             by+=(bh-nh)//2
             bw,bh=nw,nh
             #tạo rect pygame
@@ -240,9 +239,9 @@ class mainGUI(Match3GUI):
             pygame.draw.rect(self.screen_surf, (64,64,64), rect, border_radius=4)
         
         if text and fd:
-            lbl=fd.render(text, True, self.widget_text_color)
+            lbl=fd.render(text, True, self.widget_text_color)#chuyen text sang img de tao label
             self.screen_surf.blit(lbl, (rect.x+(rect.w-lbl.get_width())//2,
-                                        rect.y+(rect.h-lbl.get_height())//2+text_y_offset))
+                                        rect.y+(rect.h-lbl.get_height())//2+text_y_offset))#phải cộng thêm offset cho y vì nút có hình dạng đặc biệt
         #tạo button rect chứa tham chiếu hàm và rect
         self.button_rects[name]=(rect, callback)
 
@@ -289,17 +288,22 @@ class mainGUI(Match3GUI):
         gw=self.game_surf.get_width()
         gh=self.game_surf.get_height()
         #kích thước hộp tính từ đường chéo màn hình để tỉ lệ đúng ở mọi độ phân giải
-        box_diag=math.sqrt(gw**2+gh**2)*0.52
-        box_w=int(box_diag*16/math.sqrt(16**2+9**2))
+        box_diag=math.sqrt(gw**2+gh**2)*0.52#tính đường chéo bằng pytago, sau đó nhân với 52% để dialogue bõ k bị nhỏ quá
+        box_w=int(box_diag*16/math.sqrt(16**2+9**2))#lấy (đường chéo hiện tại / đường chéo chuẩn 16:9).cạnh
         box_h=int(box_diag*9/math.sqrt(16**2+9**2))
         box_w=min(box_w, int(gw*0.9))
         box_h=min(box_h, int(gh*0.9))
-        cx=gw//2
+
+        cx=gw//2#lấy center để gắn box vào
         cy=gh//2
+
+        #x y của pygame tính từ trái qua, trên xuống nên từ tâm lùi qua trái 1 nửa chiều cao, lùi lên trên 1 nửa chiều rộng
         rect=pygame.Rect(cx-box_w//2, cy-box_h//2, box_w, box_h)
-        pad=int(box_w*0.13)
+        pad=int(box_w*0.13)#padding 13%, 18% cho hợp với img
         pad_v=int(box_h*0.18)
         max_text_w=box_w-pad*2
+
+
         #vẽ ảnh hộp thoại hoặc hình chữ nhật màu giấy da nếu thiếu ảnh
         if self.dialogue_box_img is not None:
             scaled=pygame.transform.smoothscale(self.dialogue_box_img, (box_w, box_h))
@@ -308,15 +312,15 @@ class mainGUI(Match3GUI):
             pygame.draw.rect(self.game_surf, (235,228,220), rect, border_radius=10)
             pygame.draw.rect(self.game_surf, (180,168,155), rect, width=2, border_radius=10)
 
-        #giới hạn vùng vẽ vào content_rect để chữ không tràn ra ngoài padding
+        #giới hạn vùng vẽ vào content_rect để chữ không tràn ra ngoài padding, lùi sang bên phải/dưới một khoảng pad
         content_rect=pygame.Rect(rect.left+pad, rect.top+pad_v, box_w-pad*2, box_h-pad_v*2)
-        self.game_surf.set_clip(content_rect)
+        self.game_surf.set_clip(content_rect)#cắt xuống dưới nếu quá dài
 
         #thiết lập font và chiều cao dòng
         fds=self.font_dialog_small or self.font_dialog or self.font
         fdl=self.font_dialog_large or self.font_dialog or self.font
-        lh=fds.get_height()+2
-        lh_large=fdl.get_height()+4
+        lh=fds.get_height()+2 #set khoảng cách dòng là 2
+        lh_large=fdl.get_height()+4 #4 cho large
         sep=2
 
         #bảng màu cho dialog fate (quote/speaker/effect) và dialog thường (header/body)
@@ -331,7 +335,7 @@ class mainGUI(Match3GUI):
         icon_gap=3 if icons else 0
         icon_row_h=icon_size+sep if icons else 0
 
-        ty=0
+        ty=0 #con trỏ dòng
 
         #vẽ một dòng văn bản tại vị trí ty hiện tại rồi tăng ty
         def blit_line(font, text, color, line_h=None, x_center=True, x_right=None):
@@ -475,8 +479,8 @@ class mainGUI(Match3GUI):
 
     def draw_sidebar(self):
         
-        if self.board_bg_scaled is not None:
-            self.sidebar_surf.blit(self.board_bg_scaled, (0, 0))
+        if self.sidebar_bg_scaled is not None:
+            self.sidebar_surf.blit(self.sidebar_bg_scaled, (0, 0))
         else:
             self.sidebar_surf.fill(self.background_color["sidebar"])
         sw=self.sidebar_surf.get_width()
@@ -505,7 +509,7 @@ class mainGUI(Match3GUI):
                               bname, getattr(self, f"{bname}_clicked"),
                               btn_img=icon)
 
-        #ve indicatỏ
+        #ve indicator
         icon_r=max(4, int(unit*0.75))
         ind_h=icon_r*2
         gap=max(2, int(unit*0.35))
@@ -876,8 +880,8 @@ class mainGUI(Match3GUI):
 
         self.sidebar_surf=self.game_surf.subsurface((left_w, 0, gw-left_w, gh))#canvas sideboard từ left->hết và 0->hết
 
-        if self.board_bg is not None:
-            self.board_bg_scaled=pygame.transform.smoothscale(self.board_bg, (gw-left_w, gh))#actually board bg là của sizebar...
+        if self.sidebar_bg is not None:
+            self.sidebar_bg_scaled=pygame.transform.smoothscale(self.sidebar_bg, (gw-left_w, gh))#actually board bg là của sizebar...
 
         if self.board_area_bg is not None:
             self.board_area_bg_scaled=pygame.transform.smoothscale(self.board_area_bg, (left_w, gh))
@@ -1490,7 +1494,7 @@ class mainGUI(Match3GUI):
 
         #Background: dùng convert() thay convert_alpha() vì không cần alpha channel
         if os.path.isfile("media/images/ui/backgroundA.png"):
-            self.board_bg=pygame.image.load("media/images/ui/backgroundA.png").convert()
+            self.sidebar_bg=pygame.image.load("media/images/ui/backgroundA.png").convert()
         if os.path.isfile("media/images/ui/backgroundB.png"):
             self.board_area_bg=pygame.image.load("media/images/ui/backgroundB.png").convert()
 
