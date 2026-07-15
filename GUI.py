@@ -1,4 +1,4 @@
-﻿from Board import mainBoard
+from Board import mainBoard
 from match3_gui import Match3GUI, GameState, MouseState
 from dialogues import DIALOG_LINES, ABOUT_TEXT
 import json
@@ -10,7 +10,6 @@ import pygame
 import minigame
 import pygame_widgets as pygamew
 from sys import exit
-from pygame import gfxdraw
 
 class mainGUI(Match3GUI):
     background_color = {
@@ -754,7 +753,7 @@ class mainGUI(Match3GUI):
     ###CLICK HANDLERS###
 
     def new_game_clicked(self):
-        self.board=mainBoard(6, 6, 3)
+        self.board=mainBoard()
         self.hint=False
         self.pause=False
         self.life_stage=0
