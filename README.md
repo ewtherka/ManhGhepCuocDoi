@@ -1,8 +1,15 @@
 # Mảnh ghép cuộc đời
+ Trò chơi được xây dựng dựa trên MATCH3PY của tác giả Tomas Gonzalez Aragon và lấy ý tưởng từ Life Crush Story của QuickTurtle.
+ Nhóm sinh viên thực hiện:
+ - Trịnh Nguyễn Cát Tường (25522036)
+ - Đỗ Hải Yến (25522133)
+ - Nguyễn Khánh Vân (25522051)
+Giảng viên hướng dẫn: Thạc sĩ Phạm Nguyễn Trường An
+Trân trọng cảm ơn thầy vì đã hết lòng chỉ dạy chúng em!
 
 # Tổng quan
 
-"Mảnh Ghép Cuộc Đời" là một tựa game giải đố ghép ba (Match-3) kết hợp với yếu tố mô phỏng vòng đời con người. Trò chơi tái hiện lại hành trình của một cá nhân từ lúc sinh ra, trưởng thành cho đến khi theo đuổi ước mơ. Thông qua việc tư duy và thao tác trên bảng giải đố, người chơi sẽ trực tiếp định hình tương lai và quyết định số phận của nhân vật. Trò chơi được xây dựng dựa trên MATCH3PY của tác giả Tomas Gonzalez Aragon và lấy ý tưởng từ Life Crush Story của QuickTurtle.\[1\]
+"Mảnh Ghép Cuộc Đời" là một tựa game giải đố ghép ba (Match-3) kết hợp với yếu tố mô phỏng vòng đời con người. Trò chơi tái hiện lại hành trình của một cá nhân từ lúc sinh ra, trưởng thành cho đến khi theo đuổi ước mơ. Thông qua việc tư duy và thao tác trên bảng giải đố, người chơi sẽ trực tiếp định hình tương lai và quyết định số phận của nhân vật.
 
 # Cơ chế lối chơi
 
@@ -65,24 +72,14 @@ Khi số điểm của khối Hobby hoặc khối Chance đạt đến một m�
 Được thiết kế theo hình dấu "?", nhiệm vụ của chức năng này là gợi ý khối có thể đổi vị trí để tạo nên match 3, 4 hay 5 trở lên. Người chơi có thể sử dụng chức năng này khi không nhìn ra được nước đi phù hợp.
 
 ## Prerequisites
-
 * [Python](https://www.python.org/downloads) `>=3.9.0`
 * [Pygame](https://pypi.org/project/pygame) `>=2.0.0`
 * [Pygame Widgets](https://pypi.org/project/pygame-widgets) `>=0.6.0`
 * [jsonschema](https://pypi.org/project/jsonschema) `>=3.2.0`
 
 ## Running
+Vui lòng đảm bảo rằng pip và python đã được tải và thêm vào enviroment variable.
 
-Ensure that Python 3 and pip are installed and added to your environment PATH.
+Chạy trò chơi bằng cách dán lệnh sau vào Command Prompt:
 
-Install the prerequisites:
-
-`pip -r requirements.txt`
-
-Run the application with the following command:
-
-`python match3py.pyw`
-
-## Assets
-
-Download the [match3py_media.zip](https://drive.google.com/file/d/1BjqaYEsukdx5Nd-WBsdqvkzYx7fyaRr6/view?usp=sharing) file, uncompress it in the same directory as the main.py file.
+`python ManhGhepCuocDoi.pyw`
