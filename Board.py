@@ -79,7 +79,6 @@ class mainBoard(Match3Board):
         for row in range(rows[0], rows[1]):
             for col in range(cols[0], cols[1]):
                 if self.board[row][col] == self.empty:
-                    
                     is_shadowed = False
                     for r in range(row - 1, -1, -1):
                         if self.ice_board[r][col] > 0:
@@ -95,6 +94,7 @@ class mainBoard(Match3Board):
                         values_left.remove(value)
                         self.board[row][col] = value
                         
+                        # Đảm bảo khối tạo ra không tạo thành match-3
                         if not no_match3_group_check or not self.filter_group(self.get_group(col, row)):
                             break
                             
@@ -136,7 +136,7 @@ class mainBoard(Match3Board):
 
     def get_group(self, col: int, row: int, group: list[tuple[int, int]] = None) -> list[tuple[int, int]]:
         '''
-        Tìm các cụm block liền kề nhau.
+        Tìm các cụm block liền kề nhau. Trừ block FATE và block bị đóng băng.
         '''
         if self.board[row][col] == self.FATE or self.ice_board[row][col] > 0:
             return group if group is not None else []
@@ -230,6 +230,7 @@ class mainBoard(Match3Board):
         '''
         Xử lý rơi khối thẳng và chéo.
         '''
+        # Xác định vị trí ban đầu của khối
         initial_positions = {}
         for r in range(self.rows):
             for c in range(self.cols):
@@ -242,13 +243,14 @@ class mainBoard(Match3Board):
             for row in reversed(range(0, self.rows - 1)):
                 for col in range(self.cols):
                     if self.board[row + 1][col] == self.empty:
-
+                        # Xử lí khối rơi thẳng đứng
                         if self.board[row][col] != self.empty and self.ice_board[row][col] == 0:
                             self.swap((col, row), (col, row + 1))
                             initial_positions[(col, row + 1)] = initial_positions.pop((col, row))
                             moved = True
                             continue
-                            
+                        
+                        # Xử lý khối bị chắn bởi băng (Rơi chéo)
                         is_shadowed = False
                         if self.ice_board[row][col] > 0:
                             is_shadowed = True
@@ -259,7 +261,6 @@ class mainBoard(Match3Board):
                                     break
                                     
                         if is_shadowed:
-                            import random
                             dirs = [-1, 1]
                             random.shuffle(dirs)
                             
