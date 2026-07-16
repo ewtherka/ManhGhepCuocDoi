@@ -4,7 +4,7 @@
  - Trịnh Nguyễn Cát Tường (25522036)
  - Đỗ Hải Yến (25522133)
  - Nguyễn Khánh Vân (25522051)
-- Giảng viên hướng dẫn: Thạc sĩ Phạm Nguyễn Trường An
+/n Giảng viên hướng dẫn: Thạc sĩ Phạm Nguyễn Trường An
 - Trân trọng cảm ơn thầy vì đã hết lòng chỉ dạy chúng em!
 
 # Tổng quan
