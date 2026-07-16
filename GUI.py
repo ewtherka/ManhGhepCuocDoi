@@ -1143,7 +1143,7 @@ class mainGUI(Match3GUI):
             anim_src = list(movements.values())
 
             num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
-            populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+            populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=True)
             
             if not movements and not populated: break
                 
@@ -1165,12 +1165,13 @@ class mainGUI(Match3GUI):
                 self.board.clear(chance_pts)
                 
             while True:
+                # Rơi các khối cũ đã có trên bảng
                 movements = self.board.resolve_gravity()
                 anim_dst = list(movements.keys())
                 anim_src = list(movements.values())
-
+                # Duyệt xem số ô trống và sinh thêm khối mới
                 num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
-                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=True)
                 
                 if not movements and not populated: break
                     
@@ -1181,6 +1182,7 @@ class mainGUI(Match3GUI):
                     self.animate_shift_down(anim_dst, self.get_num_vertical_points(chance_pts), src_pts=anim_src)
                 self.play_sound("drop")
                 self.update_board()
+                
         elif event=="thief":
             floor=(self.hobby_count//20)*20
             self.hobby_count=max(self.hobby_count-5, floor)
@@ -1236,7 +1238,7 @@ class mainGUI(Match3GUI):
                             if self.board.board[r][c] not in (mainBoard.FATE, self.board.empty) 
                             and self.board.ice_board[r][c] == 0]
                 
-                num_freeze = min(random.randint(10,15), len(possible))
+                num_freeze = min(random.randint(8,10), len(possible))
                 for fx, fy in random.sample(possible, num_freeze):
                     self.board.ice_board[fy][fx] = 2
 
@@ -1434,7 +1436,7 @@ class mainGUI(Match3GUI):
                 anim_src = list(movements.values())
 
                 num_empties_col={x: sum(1 for y in range(self.board.rows) if self.board.board[y][x]==self.board.empty) for x in range(self.board.cols)}
-                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=False)
+                populated = self.board.populate(rows=(0, self.board.rows), no_valid_play_check=False, no_match3_group_check=True)
                 
                 if not movements and not populated: break
                     
