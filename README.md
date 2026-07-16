@@ -1,11 +1,11 @@
 # Mảnh ghép cuộc đời
- Trò chơi được xây dựng dựa trên MATCH3PY của tác giả Tomas Gonzalez Aragon và lấy ý tưởng từ Life Crush Story của QuickTurtle.
+ Trò chơi được xây dựng dựa trên MATCH3PY của tác giả Tomas Gonzalez Aragon và lấy ý tưởng từ Life Crush Story của QuickTurtle.\
  Nhóm sinh viên thực hiện:
  - Trịnh Nguyễn Cát Tường (25522036)
  - Đỗ Hải Yến (25522133)
- - Nguyễn Khánh Vân (25522051)
-/n Giảng viên hướng dẫn: Thạc sĩ Phạm Nguyễn Trường An
-- Trân trọng cảm ơn thầy vì đã hết lòng chỉ dạy chúng em!
+ - Nguyễn Khánh Vân (25522051)\
+Giảng viên hướng dẫn: Thạc sĩ Phạm Nguyễn Trường An\
+Trân trọng cảm ơn thầy vì đã hết lòng chỉ dạy chúng em!
 
 # Tổng quan
 
