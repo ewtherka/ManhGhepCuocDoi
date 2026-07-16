@@ -1,3 +1,0 @@
-jsonschema
-pygame
-pygame-widgets
