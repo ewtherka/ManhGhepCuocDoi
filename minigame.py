@@ -11,12 +11,12 @@ class Tailor:
         self.clock = clock
         self.difficulty = difficulty
         
-        # --- 1. THIẾT LẬP CÁC BIẾN SỐ CƠ BẢN (KHÔNG ĐỔI) ---
+        # BIẾN SỐ CƠ BẢN
         self.box_width = 450
         self.box_height = 250
         self.bar_width = 350 # Độ rộng logic thanh may, dùng chung
         
-        # --- 2. THIẾT LẬP THỜI GIAN VÀ TỐC ĐỘ THEO ĐỘ KHÓ (KHÔNG ĐỔI) ---
+        # Thời gian và tốc độ kim chỉ
         if self.difficulty == 0:
             self.max_time = 20.0
             self.needle_speed = 130.0
@@ -31,46 +31,38 @@ class Tailor:
         self.needle_pos = 0.0  
         self.needle_dir = 1 
         
-        # --- FONT PIXEL ---
+        # Font chữ
         _font_path = os.path.join("media", "font", "RobotikaPixelGreek-nAWJR.otf")
         self.font = pygame.font.Font(_font_path, 24)
         self.title_font = pygame.font.Font(_font_path, 32)
         
-        # =========================================================================
-        # --- 3. ĐỒNG BỘ VISUAL (THẨM MỸ) VÀ LOGIC (BẮT ĐẦU SỬA Ở ĐÂY) ---
-        # =========================================================================
+        # Kích thước hiển thị (Target & Needle)
+        target_display_width_px = 30   # Độ rộng của cái target
+        needle_display_width_px = 15   # Độ rộng cây kim
         
-        # BƯỚC 3.1: Định nghĩa kích thước hiển thị mong muốn (Target & Needle)
-        target_display_width_px = 30   # [THẨM MỸ] Bạn muốn cái thớt rộng bao nhiêu pixel? (Gán 30 cho nhỏ đẹp)
-        needle_display_width_px = 15   # [THẨM MỸ] Cây kim rộng bao nhiêu? (Nên nhỏ hơn thớt, vd: 15)
-        
-        # BƯỚC 3.2: Buộc Logic phải tính toán theo Visual
+        # Logic phải tính toán theo Visual
         self.target_width = (target_display_width_px / self.bar_width) * 100.0
-        
-        # --- THÊM DÒNG NÀY: Tính nửa chiều rộng ---
         half_target = self.target_width / 2.0
         
-        # BƯỚC 3.3: Khởi tạo vị trí ngẫu nhiên NHƯNG LÀ TÂM CỦA THỚT
+        # KHỞI TẠO VỊ TRÍ NGẪU NHIÊN
         # Random từ nửa thớt đến (100 - nửa thớt)
         self.target_pos = random.uniform(half_target, 100.0 - half_target)
         
-        # BƯỚC 3.4: Định nghĩa vùng ăn điểm thực tế (Hitbox) khắt khe bên trong
-        # Số này phải nhỏ hơn self.target_width (khoảng 8.57) thì mới nằm trong thớt được.
-        # Ví dụ đặt là 4.0 -> Vùng accept chỉ rộng 4% (~14px) nằm ngay giữa thớt.
+        # ĐỊNH NGHĨA HITBOX
         self.hitbox_width = 4.0
 
-        # --- 4. TẢI VÀ SCALE HÌNH ẢNH THEO KÍCH THƯỚC ĐÃ ĐỊNH NGHĨA ---
+        # SCALE HÌNH ẢNH
         try:
             self.bg_img = pygame.image.load("media/images/minigame/handicraft/handicraft_background.png").convert_alpha()
             self.bg_img = pygame.transform.scale(self.bg_img, (self.box_width, self.box_height))
             
-            # Target - Scale đúng theo target_display_width_px (30)
+            # Target - Scale theo target_display_width_px (30)
             self.target_img = pygame.image.load("media/images/minigame/handicraft/target.png").convert_alpha()
             orig_w, orig_h = self.target_img.get_size()
             new_h = int(target_display_width_px * orig_h / orig_w) 
             self.target_img = pygame.transform.scale(self.target_img, (target_display_width_px, new_h))
             
-            # Needle - Scale đúng theo needle_display_width_px (15)
+            # Needle - Scale theo needle_display_width_px (15)
             self.needle_img = pygame.image.load("media/images/minigame/handicraft/needle.png").convert_alpha()
             orig_w, orig_h = self.needle_img.get_size()
             new_h = int(needle_display_width_px * orig_h / orig_w) 
@@ -89,7 +81,7 @@ class Tailor:
         self.canvas = pygame.Surface((self.box_width, self.box_height))
 
     def check_win(self):
-        # target_pos giờ đã là TÂM
+        # target_pos ở vị trí tâm
         target_center = self.target_pos 
         
         left_bound = target_center - (self.hitbox_width / 2.0)
@@ -99,14 +91,14 @@ class Tailor:
             return True
         return False
 
-    # Bỏ tham số screen ở đây vì đã được truyền vào __init__
+    # Bỏ tham số screen vì đã được truyền vào __init__
     def run(self):
         running = True
         result = None 
         
         bar_width = 350
         
-        # --- XÍCH THANH THỜI GIAN LÊN TRÊN --- 
+        # XÍCH THANH THỜI GIAN LÊN TRÊN
         timer_rect = pygame.Rect(50, 30, self.bar_width, 15)
         sew_rect = pygame.Rect(50, 150, self.bar_width, 30)
 
@@ -147,10 +139,10 @@ class Tailor:
                 self.needle_pos = 0.0
                 self.needle_dir = 1
 
-            # --- VẼ UI ---
-            # --- VẼ UI LÊN CANVAS ẢO ---
+            # VẼ UI
+            # UI trên Canvas ảo
             self.canvas.fill((0, 0, 0))
-            self.canvas.blit(self.bg_img, (0, 0)) # Vẽ ở (0,0) vì canvas chuẩn 450x250
+            self.canvas.blit(self.bg_img, (0, 0))
 
             # Thanh thời gian (đổi self.screen thành self.canvas)
             pygame.draw.rect(self.canvas, (200, 200, 200), timer_rect, border_radius=5)
@@ -172,7 +164,7 @@ class Tailor:
             needle_rect.centery = sew_rect.centery
             self.canvas.blit(self.needle_img, needle_rect)
 
-            # --- PHÓNG TO CANVAS LÊN MÀN HÌNH THẬT (GIỮ ĐÚNG TỈ LỆ CHỮ NHẬT) ---
+            # PHÓNG TO CANVAS LÊN MÀN HÌNH THẬT (GIỮ ĐÚNG TỈ LỆ CHỮ NHẬT)
             # 1. Lấy kích thước hiện tại của màn hình được truyền vào (board_surf)
             current_screen_w, current_screen_h = self.screen.get_size()
             
@@ -202,13 +194,14 @@ class Tailor:
         return result
 
 class Fighter:
-    """Melee fighter on a tiled 7×7 battlefield.
+    """
+    MINIGAME ĐÁNH QUÁI TRÊN CHIẾN TRƯỜNG
+    
+    Di chuyển: WASD
+    Đánh quái: Nhấp chuột trái (nhân vật đánh theo hướng di chuyển)
+    Thoát khỏi game: ESC
 
-    Movement : WASD
-    Attack   : Left mouse button (melee swing in facing direction)
-    Quit     : ESC
-
-    Returns True (won) or False (lost/quit) from run().
+    Trả về kết quả True (Thắng) hoặc False (Thua/Thoát khỏi game)
     """
 
     BG_COLOR       = (20,  20,  30)
@@ -229,7 +222,7 @@ class Fighter:
     ATTACK_FLASH_MS    = 150
     ATTACK_WINDUP_SEC  = 0.2   # thời gian chờ trước khi enemy tấn công
     PLAYER_RADIUS      = 14
-    ENEMY_RADIUS       = 14          # fallback when sprites not loaded
+    ENEMY_RADIUS       = 14
     MELEE_RADIUS       = int(PLAYER_RADIUS * 1.5)   # = 21
     KNOCKBACK_DIST     = 70
 
@@ -281,10 +274,7 @@ class Fighter:
         r = self.MELEE_RADIUS
         self._melee_flash_surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
 
-    # ------------------------------------------------------------------ #
-    # Asset loading
-    # ------------------------------------------------------------------ #
-
+    # TÀI NGUYÊN
     def _load_assets(self) -> None:
         if os.path.isdir(self._TILE_DIR):
             for i in range(1, 65):
@@ -332,10 +322,7 @@ class Fighter:
                 ]
         return result
 
-    # ------------------------------------------------------------------ #
-    # Board generation
-    # ------------------------------------------------------------------ #
-
+    # kHỞI TẠO VÙNG CHIẾN TRƯỜNG
     def _generate_board(self):
         """Return (tile_grid, is_path_grid) satisfying adjacency and coverage rules."""
         COLS, ROWS = self.BOARD_COLS, self.BOARD_ROWS
@@ -387,7 +374,6 @@ class Fighter:
                     for dr, dc in ((-1,0),(1,0),(0,-1),(0,1))
                 )
 
-            # path + mixed tiles = path-zone cells + grass cells adjacent to path-zone
             non_grass = sum(
                 1 for r in range(ROWS) for c in range(COLS)
                 if is_path[r][c] or _has_path_nbr(r, c)
@@ -406,14 +392,10 @@ class Fighter:
                                        else self.TILE_GRASS_ID)
             return tiles, is_path
 
-        # Fallback: all grass
         return ([[self.TILE_GRASS_ID]*COLS for _ in range(ROWS)],
                 [[False]*COLS for _ in range(ROWS)])
 
-    # ------------------------------------------------------------------ #
-    # Ground object placement
-    # ------------------------------------------------------------------ #
-
+    # Vật thể trên mặt đất
     def _place_objects(self) -> dict:
         if not self._obj_imgs:
             return {}
@@ -437,10 +419,7 @@ class Fighter:
                 occupied.add((r, c))
         return result
 
-    # ------------------------------------------------------------------ #
     # Public API
-    # ------------------------------------------------------------------ #
-
     @staticmethod
     def _vec_to_dir(dx: float, dy: float) -> str:
         if abs(dx) >= abs(dy):
@@ -518,7 +497,7 @@ class Fighter:
                         e["death_frames"] = self._enemy_sprites.get(e["dir"], {}).get("Death", [])
                         score += 1
 
-            # ── Spawn enemies ────────────────────────────────────────── #
+            # ── Tạo quái ────────────────────────────────────────── #
             if now - last_spawn >= self.SPAWN_INTERVAL_MS:
                 side  = random.randint(0, 3)
                 speed = random.uniform(self.ENEMY_SPEED_MIN, self.ENEMY_SPEED_MAX)
@@ -534,7 +513,7 @@ class Fighter:
                                 "death_frames": []})
                 last_spawn = now
 
-            # ── Update each enemy ─────────────────────────────────────── #
+            # ── Nâng cấp quái ─────────────────────────────────────── #
             for e in enemies:
                 if e["dead"]:
                     continue
@@ -604,7 +583,7 @@ class Fighter:
             if player_hp <= 0 or time_left <= 0:
                 running = False
 
-            # ── Player animation state ────────────────────────────────── #
+            # ── Trạng thái nhân vật ────────────────────────────────── #
             moving    = bool(mdx or mdy)
             new_state = "Attack" if attacking else "Run"
             if new_state != self._anim_state:
@@ -632,10 +611,7 @@ class Fighter:
 
         return player_hp > 0 and elapsed >= self.GAME_DURATION_SEC - 0.5
 
-    # ------------------------------------------------------------------ #
     # Drawing helpers
-    # ------------------------------------------------------------------ #
-
     def _draw_bg(self) -> None:
         self.surf.fill(self.BG_COLOR)
         for r in range(self.BOARD_ROWS):
@@ -705,9 +681,6 @@ class Fighter:
         self.surf.blit(s_lbl, (8, self.h - s_lbl.get_height() - 6))
         t_lbl = self.font.render(f"{int(time_left)}s", True, self.TEXT_COLOR)
         self.surf.blit(t_lbl, (self.w - t_lbl.get_width() - 8, self.h - t_lbl.get_height() - 6))
-
-
-# ====================================================================== #
 
 direction = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, 0), (1, 1), (1, -1), (-1, 1)]
 
@@ -842,14 +815,14 @@ class Board():
                     self.grid[r][c].isRevealed = True
 
 class Minesweeper:
-    """Minesweeper minigame rendered on a given pygame Surface.
+    """
+    MINIGAME DÒ MÌN
+    Cách điều khiển: nhấp chuột trái để mở ô, chuột phải để gắn cờ, ESC để thoát khỏi game.
+    Lần mở ô đầu tiên luôn luôn là ô an toàn (mìn sẽ được đặt sau khi mở ô đầu tiên).
+    Trả về kết quả True (Thắng) hoặc False (Thua/Thoát khỏi game).
 
-    Controls: Left click to reveal, Right click to flag/unflag, ESC to quit.
-    First click is always safe (mines placed after first click).
-    Returns True (won) or False (lost/quit) from run().
-
-    difficulty=0 → hard  ( 6×6,  6 mines)
-    difficulty=1 → easy  ( 5×5,   4 mines)
+    difficulty=0 → khó  ( 6×6,  6 mines)
+    difficulty=1 → dễ  ( 5×5,   4 mines)
     """
 
     _DIFFICULTY = {
@@ -907,7 +880,7 @@ class Minesweeper:
 
     def run(self) -> bool:
         running     = True
-        hit_mine_rc = None   # (r, c) of mine that was clicked
+        hit_mine_rc = None   # Tọa độ mìn
 
         while running:
             self.clock.tick(30)
@@ -920,7 +893,7 @@ class Minesweeper:
                     running = False
 
                 if event.type == pygame.MOUSEBUTTONDOWN and not self.board.game_over:
-                    # Adjust mouse pos to surf-local coords
+                    # Điều chỉnh tọa độ chuột trên bề mặt
                     sx, sy = self.surf.get_abs_offset()
                     mx, my = event.pos[0] - sx, event.pos[1] - sy
                     cell_pos = self._pixel_to_cell(mx, my)
@@ -930,14 +903,14 @@ class Minesweeper:
                     
                     b_cell = self.board.grid[r][c]
 
-                    if event.button == 1:    # left click → reveal or chord
+                    if event.button == 1:    # Nhấp chuột trái: mở ô
                         if b_cell.isFlagged:
                             continue
                         if self.first_click:
                             self.board.place_mines(r, c)
                             self.first_click = False
                             
-                        # If already revealed, try chording
+                        # Nếu đã được mở thì nhấp để mở ô an toàn bên cạnh
                         if b_cell.isRevealed and b_cell.neighbors > 0:
                             self.board.reveal_safe_around(r, c)
                         else:
@@ -947,22 +920,20 @@ class Minesweeper:
                             
                         self.board.check_win()
 
-                    elif event.button == 3:  # right click → flag or chord
+                    elif event.button == 3:  # Nhấp chuột phải: gán cờ
                         if not b_cell.isRevealed:
                             if b_cell.isFlagged:
                                 b_cell.isFlagged = False
                             elif self.flags_left > 0:
                                 b_cell.isFlagged = True
                         else:
-                            # Chording on right click too
                             self.board.reveal_safe_around(r, c)
                             self.board.check_win()
 
-                # Close result overlay on any click after game ends
                 if event.type == pygame.MOUSEBUTTONDOWN and self.board.game_over:
                     running = False
 
-            # Update flags left calculation
+            # Update số lượng cờ còn lại
             used_flags = sum(1 for r in range(self.board.rows) for c in range(self.board.cols) if self.board.grid[r][c].isFlagged)
             self.flags_left = self.total_mines - used_flags
 
@@ -971,10 +942,7 @@ class Minesweeper:
 
         return self.board.is_win
 
-    # ------------------------------------------------------------------ #
-    # Grid logic
-    # ------------------------------------------------------------------ #
-
+    # Logic bàn cờ
     def _pixel_to_cell(self, mx: int, my: int):
         c = (mx - self.ox) // self.cell
         r = (my - self.oy) // self.cell
@@ -982,10 +950,7 @@ class Minesweeper:
             return r, c
         return None
 
-    # ------------------------------------------------------------------ #
-    # Drawing
-    # ------------------------------------------------------------------ #
-
+    # Vẽ bàn cờ
     def _draw(self, hit_mine_rc, result) -> None:
         self.surf.fill(self.BG_COLOR)
         cs = self.cell
@@ -1000,7 +965,7 @@ class Minesweeper:
 
                 if b_cell.isRevealed:
                     if b_cell.isMine:
-                        # Mine — show red if it was the clicked one
+                        # Mìn - để màu đỏ nếu nó được nhấn vào
                         color = self.COLOR_EXPLODE if hit_mine_rc == (r, c) else self.COLOR_MINE
                         pygame.draw.rect(self.surf, color, rect, border_radius=3)
                         # Draw X
@@ -1029,11 +994,11 @@ class Minesweeper:
                 else:
                     pygame.draw.rect(self.surf, self.COLOR_HIDDEN, rect, border_radius=3)
 
-        # Mines remaining counter — top-left
+        # Số lượng mìn còn lại
         lbl = self.font.render(f"Mines: {self.flags_left}", True, self.TEXT_COLOR)
         self.surf.blit(lbl, (4, 4))
 
-        # Result overlay
+        # Kết quả
         if result is not None:
             msg   = "YOU WIN!" if result else "GAME OVER"
             color = (80, 220, 80) if result else (220, 60, 60)
@@ -1050,7 +1015,9 @@ class Minesweeper:
 
 
 class SlotMachine:
-    """Single-reel slot machine for the Chance threshold."""
+    """
+    MINIGAME VÒNG QUAY MAY MẮN (Áp dụng cho khối Chance).
+    """
     def __init__(self, surf: pygame.Surface, clock: pygame.time.Clock, difficulty: int = 0) -> None:
         self.surf = surf
         self.clock = clock
