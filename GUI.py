@@ -9,6 +9,16 @@ import random
 import pygame
 import minigame
 import pygame_widgets as pygamew
+from pygame_widgets.toggle import Toggle
+from pygame_widgets.button import Button
+from pygame_widgets.slider import Slider
+from pygame_widgets.textbox import TextBox
+
+# Vá lỗi tương thích
+pygamew.Toggle = Toggle 
+pygamew.Button = Button
+pygamew.Slider = Slider
+pygamew.TextBox = TextBox
 from sys import exit
 
 class mainGUI(Match3GUI):
@@ -815,12 +825,21 @@ class mainGUI(Match3GUI):
         self.game_state=GameState.PREFERENCES
         self.update_screen()
 
-    def save_clicked(self):
-        for s in ("background_music","sound_effects"):
-            self.preferences[s]=self.active_widgets[s].value
+    def save_clicked(self) -> None:
+        for s in ("background_music", "sound_effects"):
+            widget = self.active_widgets[s]
+            # Lấy giá trị an toàn theo phiên bản pygame_widgets
+            if hasattr(widget, 'getValue'):
+                self.preferences[s] = widget.getValue()
+            elif hasattr(widget, 'state'):
+                self.preferences[s] = widget.state
+            else:
+                self.preferences[s] = widget.value
+
         with open(self.preferences_filename, 'w') as f:
             json.dump(self.preferences, f)
-        self.game_state=self.prev_state
+        self.apply_preferences()
+        self.game_state = self.prev_state
         self.update_screen()
 
     def about_clicked(self):
@@ -879,6 +898,18 @@ class mainGUI(Match3GUI):
                 pygame.mixer.music.play(-1, 0, 1000)
             except:
                 pass
+    
+    def apply_preferences(self) -> None:
+        if self.preferences.get("background_music", True):
+            if not pygame.mixer.music.get_busy(): # Nếu nhạc đang tắt thì bật lên
+                self.start_music()
+            else:
+                pygame.mixer.music.set_volume(1.0)
+        else:
+            pygame.mixer.music.set_volume(0.0)
+        vol = 1.0 if self.preferences.get("sound_effects", True) else 0.0
+        for sound in self.sounds.values():
+            sound.set_volume(vol)
 
     ###RESIZE###
 
@@ -1341,10 +1372,11 @@ class mainGUI(Match3GUI):
                     self.mouse_state=MouseState.WAITING
         return update_display
 
-    def preferences_process_events(self, events, **_):
+    def preferences_process_events(self, events, **kwargs) -> bool:
         self.active_widgets["background_music"].listen(events)
         self.active_widgets["sound_effects"].listen(events)
-        self.draw_screen()
+        self.draw_preferences() 
+        pygamew.update(events) 
         return True
 
     def process_events(self, fps=-1, **kwargs):
