@@ -153,7 +153,47 @@ class Match3GUI:
         self.high_scores = {}
         self.preferences = {}
         self.sounds = {}
-        self.last_beep_sound_time = 0
+        self.life_stage=0#So Sinh,Thieu Nhi,Thieu Nien,Thanh Nien,Truong Thanh
+        self.hobby_state=0#0=Trong, 1=Thu vui, 2=Dam me
+        self.chance_state=0#0=Trong, 1=Co hoi
+        self.time_count=0#so block time trong stage hien tai
+        self.hobby_count=0
+        self.chance_count=0      
+        self.philosopher_turns=0#philo fate
+        self.sage_turns=0 #sage fate
+        self.prisoner_turns=0#prisoner fate
+        self.hobby_icon_s0=None#icon chung state0
+        #[type][state]
+        self.hobby_icons=[[None,None,None],[None,None,None],[None,None,None]]
+        # [type][0]=generic(hobby_boost.png), [type][1]=state1, [type][2]=state2
+        self.hobby_boost_icons=[[None,None,None,None],[None,None,None,None],[None,None,None,None]]
+        self.hobby_type=None
+        self.chance_icon_s0=None
+        self.chance_icons=[None, None, None]#(love/religious/mastermind)
+        self.chance_boost_icon=None
+        self.chance_boost_icons=[None, None, None]  # [type] = chance_{love/religious/mastermind}_boost.png
+        self.chance_type=None#randumb
+        self.time_icon=[None, None]
+        self.fate_icon=None
+        self.dialogue_box_img=None
+        self.button_img=None         # generic fallback
+        self.menu_button_img=None    # menu_button.png — nút ngoài menu
+        self.board_button_img=None   # board_button.png — nút trong ván
+        self.stat_box_img=None       # stat_box.png — nền chỉ số hobby/chance
+        self.time_frame_img=None     # time_frame.png — khung hiển thị stage + hourglass
+        self.hourglass_imgs=[]       # hourglass/0.png … 12.png
+        self.hint_img=None           # hint.png — icon HINT
+        self.pause_img=None          # pause.png — icon PAUSE
+        self.block_frame_img=None    # frame.png — viền sau icon hobby/chance
+        self.board_bg=None           # backgroundA.png — sidebar
+        self.time_imgs=[None]*13     # Time 0.png … Time 12.png (ứng với time_count)
+        self.time_plate_img=None     # time_plate.png — khung chứa icon time
+        self.board_bg_scaled=None
+        self.board_area_bg=None      # backgroundB.png — toàn bộ vùng board
+        self.board_area_bg_scaled=None
+        self.failedbefore=False
+        self.random_wheel_result=None  # "copper"(20%) / "gold"(5%) / None(75%)
+
 
     ##################################################
     # Animate functions
@@ -369,10 +409,272 @@ class Match3GUI:
             gfxdraw.aacircle(self.board_surf, x, y, int(radius * self.circle_scale), color)
             gfxdraw.filled_circle(self.board_surf, x, y, int(radius * self.circle_scale), color)
         else:
-            gfxdraw.aacircle(self.board_surf, x, y, int(radius * self.circle_scale), self.border_color)
-            gfxdraw.filled_circle(self.board_surf, x, y, int(radius * self.circle_scale), self.border_color)
-            gfxdraw.aacircle(self.board_surf, x, y, int(radius * (1 - (1 - self.circle_scale) * 2)), color)
-            gfxdraw.filled_circle(self.board_surf, x, y, int(radius * (1 - (1 - self.circle_scale) * 2)), color)
+            gfxdraw.aacircle(self.board_surf, x, y, int(radius*self.circle_scale), self.border_color)
+            gfxdraw.filled_circle(self.board_surf, x, y, int(radius*self.circle_scale), self.border_color)
+            gfxdraw.aacircle(self.board_surf, x, y, int(radius*(1-(1-self.circle_scale)*2)), color)
+            gfxdraw.filled_circle(self.board_surf, x, y, int(radius*(1-(1-self.circle_scale)*2)), color)
+
+    def draw_rounded_square(self, x: int, y: int, color: tuple, size: float = None) -> None:
+        """Vẽ block base (state 0) cho hobby và chance"""
+        #dùng lại circle_radius của code mẫu để canh size
+        if size is None:
+            size = self.circle_radius
+        diameter = int(size * self.circle_scale * 2)
+
+        if diameter < 2:
+            return
+        
+        half = diameter // 2
+        border_radius = max(3, diameter // 4)
+        
+        rect = pygame.Rect(x - half, y - half, diameter, diameter)
+        pygame.draw.rect(self.board_surf, color, rect, border_radius=border_radius)
+        pygame.draw.rect(self.board_surf, (31, 39, 72), rect, width=2, border_radius=border_radius)
+
+    
+    def draw_parallelogram(self, x: int, y: int, color: tuple, size: float = None) -> None:
+        if size is None:
+            size=self.circle_radius
+        s=size*self.circle_scale
+        if s<2:
+            return
+        hw=max(2, int(s*0.28))
+        hh=max(2, int(s*0.72))
+        sk=max(1, int(s*0.22))
+        pts=[
+            (x-hw+sk, y-hh),
+            (x+hw+sk, y-hh),
+            (x+hw-sk, y+hh),
+            (x-hw-sk, y+hh),
+        ]
+        pygame.draw.polygon(self.board_surf, color, pts)
+        highlight=tuple(min(255, c+60) for c in color)
+        pygame.draw.polygon(self.board_surf, highlight, pts, 2)
+
+    def draw_tile(self, x: int, y: int, color_index: int, size: float = None) -> None:
+        """Cập nhật code xíu để cho icon vào"""
+        B = Match3Board
+        if size is None:
+            size = self.circle_radius
+        diameter = int(size * self.circle_scale * 2)
+        #Load icon cho các block chance, hobby từ state 1 trở lên
+        #và block time, fate.
+        icon=None
+        if color_index==B.HOBBY:
+            if self.hobby_state>0 and self.hobby_type is not None:
+                icon=self.hobby_icons[self.hobby_type][self.hobby_state-1]
+                if icon is None and self.hobby_state>=2:
+                    icon=self.hobby_icons[self.hobby_type][self.hobby_state-2]
+                if icon is None:
+                    icon=self.hobby_icons[self.hobby_type][0]
+            if icon is None:
+                icon=self.hobby_icon_s0  # fallback về icon state 0 chung
+        elif color_index==B.CHANCE:
+            if self.chance_state>0 and self.chance_type is not None:
+                icon=self.chance_icons[self.chance_type]
+            if icon is None:
+                icon=self.chance_icon_s0  # fallback về icon state 0 chung
+        elif color_index==B.BOOST_HOBBY:
+            if self.hobby_type is not None and self.hobby_state>0:
+                # [type][1]=state1, [type][2]=state2/3
+                state_idx=min(self.hobby_state, 3)
+                icon=self.hobby_boost_icons[self.hobby_type][state_idx]
+            if icon is None:
+                # state=0 hoặc chưa có icon riêng → dùng generic [0][0]=hobby_boost.png
+                icon=self.hobby_boost_icons[0][0]
+        elif color_index==B.BOOST_CHANCE:
+            if self.chance_type is not None:
+                icon=self.chance_boost_icons[self.chance_type] or self.chance_boost_icon
+            else:
+                icon=self.chance_boost_icon
+        elif color_index==B.TIME:
+            icon=self.time_icon[0]
+        elif color_index==B.BOOST_TIME:
+            icon=self.time_icon[1]
+        elif color_index==B.FATE:
+            icon=self.fate_icon
+
+        if icon is not None and diameter>0:
+            full_d=int(self.circle_radius*self.circle_scale*2)
+            if diameter==full_d:
+                key=(id(icon), diameter)
+                if key not in self._icon_cache:
+                    self._icon_cache[key]=pygame.transform.smoothscale(icon, (diameter, diameter))
+                scaled=self._icon_cache[key]
+            else:
+                scaled=pygame.transform.scale(icon, (diameter, diameter))
+            self.board_surf.blit(scaled, (x-diameter//2, y-diameter//2))
+            return
+
+        #hiện tại chưa có ảnh thì vẽ, sẽ xóa sau
+        elif color_index == B.HOBBY:
+            self.draw_rounded_square(x, y, self.hobby_block_color, size)
+        elif color_index == B.CHANCE:
+            self.draw_rounded_square(x, y, self.chance_block_color, size)
+        elif color_index == B.BOOST_TIME:
+            self.draw_circle(x, y, self.boost_time_color, size)
+        elif color_index == B.BOOST_HOBBY:
+            self.draw_rounded_square(x, y, self.boost_hobby_color, size)
+        elif color_index == B.BOOST_CHANCE:
+            self.draw_rounded_square(x, y, self.boost_chance_color, size)
+        elif color_index == B.FATE:
+            self.draw_parallelogram(x, y, self.fate_block_color, size)
+        
+        
+
+    def _wrap_text(self, text: str, font, max_w: int) -> list[str]:
+        """Tách text thành các dòng vừa với max_w pixel."""
+        words=text.split()
+        lines=[]
+        current=""
+        for word in words:
+            test=current+" "+word if current else word
+            if font.size(test)[0]<=max_w:
+                current=test
+            else:
+                if current:
+                    lines.append(current)
+                current=word
+        if current:
+            lines.append(current)
+        return lines if lines else [""]
+
+    def draw_dialog(self, content, icons=None) -> None:
+        gw=self.game_surf.get_width()
+        gh=self.game_surf.get_height()
+        box_diag=math.sqrt(gw**2+gh**2)*0.52
+        box_w=int(box_diag*16/math.sqrt(16**2+9**2))
+        box_h=int(box_diag*9/math.sqrt(16**2+9**2))
+        # Không vượt quá 90% màn hình
+        box_w=min(box_w, int(gw*0.9))
+        box_h=min(box_h, int(gh*0.9))
+        cx=gw//2
+        cy=gh//2
+        rect=pygame.Rect(cx-box_w//2, cy-box_h//2, box_w, box_h)
+        pad=int(box_w*0.13)
+        pad_v=int(box_h*0.18)
+        max_text_w=box_w-pad*2
+        if self.dialogue_box_img is not None:
+            scaled=pygame.transform.smoothscale(self.dialogue_box_img, (box_w, box_h))
+            self.game_surf.blit(scaled, rect.topleft)
+        else:
+            pygame.draw.rect(self.game_surf, (235, 228, 220), rect, border_radius=10)
+            pygame.draw.rect(self.game_surf, (180, 168, 155), rect, width=2, border_radius=10)
+
+        # Clip vùng text — mọi thứ vẽ ngoài content_rect sẽ bị cắt tự động
+        content_rect=pygame.Rect(rect.left+pad, rect.top+pad_v,
+                                  box_w-pad*2, box_h-pad_v*2)
+        self.game_surf.set_clip(content_rect)
+
+        fds=self.font_dialog_small or self.font_dialog or self.font
+        fdl=self.font_dialog_large or self.font_dialog or self.font
+        fdi=fds   # quote — small italic
+        fd=fds    # speaker — small
+        lh=fds.get_height()+2
+        lh_large=fdl.get_height()+4
+        sep=2
+
+        DARK_RED=(160, 30, 30)
+        COL_QUOTE=(202, 117, 66)
+        COL_SPEAKER=(187, 133, 61)
+        COL_EFFECT=(138, 69, 51)
+
+        icons=[i for i in (icons or []) if i is not None]
+        icon_size=int(lh_large*0.6) if icons else 0
+        icon_gap=3 if icons else 0
+        icon_row_h=icon_size+sep if icons else 0
+
+        def blit_line(font, text, color, line_h=None, x_center=True, x_right=None):
+            nonlocal ty
+            lbl=font.render(text, True, color)
+            if x_right is not None:
+                self.game_surf.blit(lbl, (x_right-lbl.get_width(), ty))
+            elif x_center:
+                self.game_surf.blit(lbl, (cx-lbl.get_width()//2, ty))
+            ty+=(line_h or lh)
+
+        def blit_icons():
+            nonlocal ty
+            if not icons: return
+            total_icon_w=len(icons)*icon_size+(len(icons)-1)*icon_gap
+            ix=cx-total_icon_w//2
+            for ic in icons:
+                si=pygame.transform.smoothscale(ic,(icon_size,icon_size))
+                self.game_surf.blit(si,(ix,ty))
+                ix+=icon_size+icon_gap
+            ty+=icon_row_h
+
+        header=content.get("header") if isinstance(content, dict) else None
+
+        if isinstance(content, dict) and "quote" in content:
+            # Fate: icon + header + quote + speaker + effect
+            quote_lines=self._wrap_text(content["quote"], fdi, max_text_w)
+            speaker_lines=self._wrap_text(content["speaker"], fd, max_text_w)
+            effect_lines=self._wrap_text(content["effect"], fdl, max_text_w)
+            header_lines=self._wrap_text(header, fdl, max_text_w) if header else []
+            total_h=(icon_row_h
+                    +len(header_lines)*lh_large+sep
+                    +len(quote_lines)*lh+sep
+                    +len(speaker_lines)*lh+sep
+                    +len(effect_lines)*lh_large)
+            ty=max(content_rect.top, cy-total_h//2)
+            blit_icons()
+            for line in header_lines:
+                blit_line(fdl, line, DARK_RED, line_h=lh_large)
+            ty+=sep
+            for line in quote_lines:
+                blit_line(fdi, line, COL_QUOTE)
+            ty+=sep
+            for line in speaker_lines:
+                blit_line(fd, line, COL_SPEAKER, x_center=False, x_right=content_rect.right)
+            ty+=sep
+            for line in effect_lines:
+                blit_line(fdl, line, COL_EFFECT, line_h=lh_large)
+        else:
+            # hobby / chance / stage / ending: icon + header + lines
+            lines=content.get("lines", content) if isinstance(content, dict) else content
+            header_lines=self._wrap_text(header, fdl, max_text_w) if header else []
+            all_lines=[]
+            for line in lines:
+                all_lines.extend(self._wrap_text(line, fdl, max_text_w))
+            total_h=icon_row_h+len(header_lines)*lh_large+sep+len(all_lines)*lh_large
+            ty=max(content_rect.top, cy-total_h//2)
+            blit_icons()
+            for line in header_lines:
+                blit_line(fdl, line, DARK_RED, line_h=lh_large)
+            ty+=sep
+            for line in all_lines:
+                blit_line(fdl, line, COL_EFFECT, line_h=lh_large)
+
+        self.game_surf.set_clip(None)  # bỏ clip sau khi vẽ xong
+
+    def show_dialog_and_wait(self, content, icons=None) -> None:
+        """Hiển thị hộp thoại, pause mọi thứ, chờ click chuột để đóng."""
+        self.draw_board()
+        self.draw_sidebar()
+        self.draw_dialog(content, icons)
+        pygame.display.flip()
+        waiting=True
+        while waiting:
+            self.clock.tick(30)
+            for event in pygame.event.get():
+                if event.type==pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type==pygame.MOUSEBUTTONDOWN:
+                    waiting=False
+                if event.type==pygame.VIDEORESIZE:
+                    self.resize_surfaces()
+                    self.draw_board()
+                    self.draw_sidebar()
+                    self.draw_dialog(content, icons)
+                    pygame.display.flip()
+        # Xóa dialog: vẽ lại screen không có dialog
+        self.screen_surf.fill(self.background_color["screen"])
+        self.game_surf.fill(self.background_color["game"])
+        self.draw_board()
+        self.draw_sidebar()
+        pygame.display.flip()
 
     def draw_board(self, no_draw_pts: list[tuple[int, int]] = None) -> None:
         self.board_surf.fill(self.background_color["board"])
@@ -749,6 +1051,19 @@ class Match3GUI:
         self.curr_time_score = 0
         self.time_paused = 0
         self.pause = False
+        self.life_stage = 0
+        self.hobby_state = 0
+        self.hobby_type = None
+        self.chance_state = 0
+        self.chance_type = None
+        self.time_count = 0
+        self.hobby_count = 0
+        self.chance_count = 0
+        self.philosopher_turns=0
+        self.sage_turns=0
+        self.prisoner_turns=0
+        self.turn_taken = False
+        self.random_wheel_result=None
         self.game_state = GameState.RUNNING
         self.start_music()
         self.resize_surfaces()
@@ -921,12 +1236,29 @@ class Match3GUI:
     ##################################################
     # Process events functions
     ##################################################
+    def _hobby_dialog_icon(self):
+        if self.hobby_type is None:
+            return self.hobby_icon_s0
+        # boost icon index matches current state (capped at 2; state 3 uses index 2)
+        idx = min(max(self.hobby_state, 0), 3)
+        for i in range(idx, -1, -1):
+            ic = self.hobby_boost_icons[self.hobby_type][i]
+            if ic is not None:
+                return ic
+        return self.hobby_icon_s0
 
-    def choosesize_process_events(self, events, **kwargs) -> bool:
-        self.active_widgets["choose_board_size"].listen(events)
-        self.draw_choosesize()
-        if self.active_widgets["choose_board_size"].dropped:
-            self.active_widgets["start"].hide()
+    def _chance_dialog_icon(self):
+        if self.chance_type is None:
+            return self.chance_icon_s0
+        return self.chance_boost_icons[self.chance_type] or self.chance_icons[self.chance_type] or self.chance_boost_icon or self.chance_icon_s0
+
+    def endings(self, call_type: int) -> None:
+        if call_type==0:
+            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.hobby_state][self.hobby_type],
+                                      icons=[self._hobby_dialog_icon()])
+        elif call_type==1:
+            self.show_dialog_and_wait(self.DIALOG_LINES[call_type][self.random_wheel_result][self.chance_type],
+                                      icons=[self._chance_dialog_icon()])
         else:
             self.active_widgets["start"].show()
         return True
@@ -1010,6 +1342,9 @@ class Match3GUI:
                     if not swap_valid:
                         self.animate_swap(tuple(board_pos_dst), self.board_pos_src)
                         self.board.swap(board_pos_dst, self.board_pos_src)
+                    else:
+                        self.turn_taken = True
+
                     self.mouse_state = MouseState.WAITING
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button != 1:
@@ -1072,10 +1407,223 @@ class Match3GUI:
             pygame.display.flip()
 
         return False
+    
+    def load_icon(self):
+        p="media/images/ui/dialogue_box.png"
+        if os.path.isfile(p):
+            self.dialogue_box_img=pygame.image.load(p).convert_alpha()
+
+        bp="media/images/ui/button.png"
+        if os.path.isfile(bp):
+            self.button_img=pygame.image.load(bp).convert_alpha()
+        for attr, path in (
+            ("menu_button_img",  "media/images/ui/menu_button.png"),
+            ("board_button_img", "media/images/ui/board_button.png"),
+            ("block_frame_img",  "media/images/ui/frame.png"),
+            ("stat_box_img",     "media/images/ui/stat_box.png"),
+            ("time_frame_img",   "media/images/ui/time_frame.png"),
+            ("hint_img",         "media/images/ui/hint.png"),
+            ("pause_img",        "media/images/ui/pause.png"),
+        ):
+            if os.path.isfile(path):
+                setattr(self, attr, pygame.image.load(path).convert_alpha())
+
+        for i in range(13):
+            p=f"media/images/ui/Time {i}.png"
+            if os.path.isfile(p):
+                self.time_imgs[i]=pygame.image.load(p).convert_alpha()
+        tp="media/images/ui/time_plate.png"
+        if os.path.isfile(tp):
+            self.time_plate_img=pygame.image.load(tp).convert_alpha()
+
+        bg="media/images/ui/backgroundA.png"
+        if os.path.isfile(bg):
+            self.board_bg=pygame.image.load(bg).convert()
+        bgb="media/images/ui/backgroundB.png"
+        if os.path.isfile(bgb):
+            self.board_area_bg=pygame.image.load(bgb).convert()
+
+        if os.path.isfile("media/images/block/hobby_0.png"):
+            self.hobby_icon_s0=pygame.image.load("media/images/block/hobby_0.png").convert_alpha()
+        if os.path.isfile("media/images/block/chance_0.png"):
+            self.chance_icon_s0=pygame.image.load("media/images/block/chance_0.png").convert_alpha()
+
+        hobby_types=["handicraft", "military", "forge"]
+        for t, tname in enumerate(hobby_types):
+            for s, stage in enumerate(["1", "2", "3"]):
+                path=f"media/images/block/hobby_{tname}{stage}.png"
+                if os.path.isfile(path):
+                    self.hobby_icons[t][s]=pygame.image.load(path).convert_alpha()
+            for s, stage in enumerate(["1", "2", "3"]):
+                path=f"media/images/block/hobby_{tname}{stage}_boost.png"
+                if os.path.isfile(path):
+                    self.hobby_boost_icons[t][s+1]=pygame.image.load(path).convert_alpha()
+
+        # hobby_boost.png: index [t][0] cho tất cả type (dùng khi state=0)
+        if os.path.isfile("media/images/block/hobby_boost.png"):
+            generic=pygame.image.load("media/images/block/hobby_boost.png").convert_alpha()
+            for t in range(3):
+                self.hobby_boost_icons[t][0]=generic
+
+        chance_types=["love", "religious", "mastermind"]
+        for t, tname in enumerate(chance_types):
+            path=f"media/images/block/chance_{tname}.png"
+            if os.path.isfile(path):
+                self.chance_icons[t]=pygame.image.load(path).convert_alpha()
+        boost_chance_path="media/images/block/chance_boost.png"
+        if os.path.isfile(boost_chance_path):
+            self.chance_boost_icon=pygame.image.load(boost_chance_path).convert_alpha()
+        for t, tname in enumerate(chance_types):
+            path=f"media/images/block/chance_{tname}_boost.png"
+            if os.path.isfile(path):
+                self.chance_boost_icons[t]=pygame.image.load(path).convert_alpha()
+
+        for i, path in enumerate(["media/images/block/time_0.png", "media/images/block/time_boost.png"]):
+            if os.path.isfile(path):
+                self.time_icon[i]=pygame.image.load(path).convert_alpha()
+
+        fate_path="media/images/block/fate.png"
+        if os.path.isfile(fate_path):
+            self.fate_icon=pygame.image.load(fate_path).convert_alpha()
+
+        self.hourglass_imgs=[]
+        for i in range(13):  # 0..12
+            p=f"media/images/ui/hourglass/{i}.png"
+            if os.path.isfile(p):
+                self.hourglass_imgs.append(pygame.image.load(p).convert_alpha())
+            else:
+                self.hourglass_imgs.append(None)
+
 
     ##################################################
     # Main game loop functions
     ##################################################
+    def minigame(self):
+        difficulty = int(self.failedbefore)
+        if self.hobby_type == 0:#handicraft
+            result = minigame.Tailor(self.board_surf, self.clock, difficulty).run()
+        elif self.hobby_type == 1:#military
+            result = minigame.Fighter(self.board_surf, self.clock, difficulty).run()
+        else:#forge
+            result = minigame.Minesweeper(self.board_surf, self.clock, difficulty).run()
+
+        if result:
+            self.endings(0)
+        else:
+            self.failedbefore=True
+            self.hobby_state=3   #giảm độ khó
+            self.hobby_count=40  #reset về đầu state 2 để tích lại
+            if "hobby_state_3" in self.DIALOG_LINES and self.hobby_type is not None:
+                self.show_dialog_and_wait(self.DIALOG_LINES["hobby_state_3"][self.hobby_type],
+                                          icons=[self._hobby_dialog_icon()])
+
+    def check_stat_thresholds(self, check_time: bool = True) -> None:
+        if check_time and self.time_count>=12:
+            if self.life_stage>=4:
+                self.game_ended=True
+                return
+            self.life_stage+=1
+            self.time_count=0
+            key=f"stage_{self.life_stage}"
+            if key in self.DIALOG_LINES:
+                self.show_dialog_and_wait(self.DIALOG_LINES[key],
+                                          icons=[self.time_icon[0]] if self.time_icon[0] else None)
+
+        new_hobby=min(self.hobby_count//20, 2)
+        if new_hobby>self.hobby_state and self.hobby_state!=3:
+            if new_hobby==1 and self.hobby_type is None:
+                self.hobby_type=random.randint(0, 2)
+            self.hobby_state=new_hobby
+            key=f"hobby_state_{self.hobby_state}"
+            if key in self.DIALOG_LINES and self.hobby_type is not None:
+                self.show_dialog_and_wait(self.DIALOG_LINES[key][self.hobby_type],
+                                          icons=[self._hobby_dialog_icon()])
+
+        if self.hobby_state>=2 and self.hobby_count>=60:
+            self.hobby_count=60
+            self.minigame()
+
+        new_chance=min(self.chance_count//25, 1)
+        if new_chance>self.chance_state:
+            if new_chance==1 and self.chance_type is None:
+                self.chance_type=random.randint(0, 2)
+            self.chance_state=new_chance
+            if self.chance_state==1 and self.chance_type is not None:
+                self.show_dialog_and_wait(self.DIALOG_LINES["chance_state_1"][self.chance_type],
+                                          icons=[self._chance_dialog_icon()])
+
+        # Khi chance_count >= 50: xác định kết quả (gold 5%, copper 10%, blank 85%)
+        if self.chance_count>=50 and self.random_wheel_result is None:
+            roll = random.random()
+            result = "gold" if roll < 0.05 else "copper" if roll < 0.15 else "blank"
+            self.random_wheel_result = result if result != "blank" else None
+            if self.random_wheel_result is not None:
+                self.endings(1)
+
+    def _apply_fate_event(self) -> None:
+        sx, sy = self.board_pos_src
+        event=random.choice(["philosopher", "seer", "sage", "thief", "brute", "prisoner"])
+
+       
+        # Set hiệu ứng turns TRƯỚC khi clear để cascade sau đó không cộng điểm
+        if event=="philosopher": self.philosopher_turns=2
+        elif event=="sage":      self.sage_turns=2
+        elif event=="prisoner":  self.prisoner_turns=2
+
+        dialog_key=f"fate_{event}"
+        if dialog_key in self.DIALOG_LINES:
+            self.show_dialog_and_wait(self.DIALOG_LINES[dialog_key],
+                                      icons=[self.fate_icon] if self.fate_icon else None)
+
+        fate_pt=[(sx, sy)]
+        self.animate_clear(fate_pt)
+        self.board.clear(fate_pt)
+        while not self.board.is_full():
+            shifted=self.board.shift_down()
+            shifted+=self.board.populate(rows=[0, 1], no_valid_play_check=False, no_match3_group_check=False)
+            self.animate_shift_down(shifted, 1)
+        self.play_sound("drop")
+        self.update_board()
+
+        # philosopher/sage/prisoner đã set ở trên, chỉ xử lý các event còn lại
+        if event=="seer":
+            chance_pts=[
+                (c, r)
+                for r in range(self.board.rows)
+                for c in range(self.board.cols)
+                if self.board.board[r][c]==Match3Board.CHANCE
+            ]
+            if chance_pts:
+                self.chance_count+=len(chance_pts)
+                self.animate_clear(chance_pts)
+                self.board.clear(chance_pts)
+                while not self.board.is_full():
+                    shifted=self.board.shift_down()
+                    shifted+=self.board.populate(rows=[0, 1], no_valid_play_check=False, no_match3_group_check=False)
+                    self.animate_shift_down(shifted, self.get_num_vertical_points(chance_pts))
+                self.play_sound("drop")
+                self.check_stat_thresholds()
+                self.update_board()
+        elif event=="thief":
+            floor=(self.hobby_count//20)*20
+            self.hobby_count=max(self.hobby_count-5, floor)
+            self.update_sidebar()
+        elif event=="brute":
+            floor=(self.chance_count//25)*25
+            self.chance_count=max(self.chance_count-5, floor)
+            self.update_sidebar()
+
+    def animate_time_increment(self, gain: int) -> None:
+        """Tăng time_count từng nấc, mỗi nấc cập nhật icon time indicator."""
+        STEP_MS = 80  # ms giữa mỗi nấc
+        for _ in range(gain):
+            self.time_count = min(self.time_count + 1, 12)
+            self.draw_board()
+            self.draw_sidebar()
+            pygame.display.flip()
+            pygame.time.wait(STEP_MS)
+            if self.time_count >= 12:
+                break
 
     def running(self) -> None:
         # Let the computer play (for debug)
@@ -1126,7 +1674,13 @@ class Match3GUI:
             bonus += 1
             bonus_score += bonus
 
-        # Check if there is a valid play, if not, regenerate the board
+        if getattr(self, 'turn_taken', False):
+            if self.philosopher_turns > 0: self.philosopher_turns -= 1
+            if self.sage_turns > 0: self.sage_turns -= 1
+            if self.prisoner_turns > 0: self.prisoner_turns -= 1
+            self.turn_taken = False
+            
+        #check coi còn chơi được k
         play = self.board.find_a_play()
         if len(play) == 0:
             self.animate_clear([(x, y) for y in range(self.board.rows) for x in range(self.board.cols)], True)
